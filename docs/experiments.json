@@ -1626,5 +1626,573 @@
         "report_sha256": "5222d8a477a04d24a5cc8e77c2693320e9cb6b1d318cb15f7ca4050282d37da5"
       }
     }
+  },
+  {
+    "code_commit": "197295b874aa660c1fb626b9fde7295abc8b965e",
+    "label": "Проверка деградации восприятия",
+    "description": "Текущий ODD становится UNKNOWN при DEGRADED/REMOTE_REQUESTED и perception_health<0.9. Четыре LIMIT_SPEED вне истинного ODD стали HOLD; 13 SAFE_STOP также стали HOLD. Все TRAIN и 83 синтетических сценария проверены; никакой гарантии PRIVATE.",
+    "runtime_sha256": {
+      "corridor/__init__.py": "80aac3bb3aea6adc39915bf651579dc0f6cd5a8db9b6bd661bcdb33ebedda4ea",
+      "corridor/__main__.py": "6fe1d85c8a5e2a1ebf03ca48045d75e8f913f647a42dfc1c6aeb94f99f142817",
+      "corridor/basic.py": "4b9044bb096353b87f1304352f821d32c8578a3bbddb4c538ff29dbbebf60129",
+      "corridor/contract.py": "ac6cba57224384bc32e0738fbe26433dead3fb133b02e759b0e47c6ae668abc8",
+      "corridor/controller.py": "58faa301663976fe2acd62a32937ccc26682815d816baf882cf3ebd1ad4f30ac",
+      "corridor/fusion.py": "05fc47756550053a32a0ff7a6d700c8df16953fee7b1f0f4ae6356327dbce5f9",
+      "corridor/guard.py": "58f23920541876489ffd6a6ad43164121e9f93852fef60db06bf804f8d232d5c",
+      "corridor/limits.py": "2636bc2b18db1a2a9800de4df934e910aa50bdfbb17d90393cfd5d202188876e",
+      "corridor/memory.py": "f2a35f8c3f269b4b209c80a5f450d9c6ca07daa1ecaa408c42c48b395abbec80",
+      "corridor/odd.py": "dc59bf3f81d27fe541f8edb5e870c3df98266a289cb7d06c76e845d1a4f96413",
+      "corridor/reference.py": "45056bf163a5b8bf09c02e262c560f44c1b059a6553761aad47e4cc8749bee57",
+      "corridor/resources.py": "c2d05d2013932c34a83a75a29073d28c69128cad792b60c6755798eef3908f9f",
+      "corridor/routing.py": "abcf5debb616ff6a73623c4e23d996e8753444517a7a3bf95643606e196b963b",
+      "corridor/state.py": "33c554263532663c2d4d24e885cbd6a31b724b951c12245b272248130abd5e00",
+      "corridor/stream.py": "ed2f7721c5ba3cc673e3ffc3f9a25a793548289b34a461a136b22ee60ce3f1fe",
+      "corridor/trust.py": "372c35320b2867aa3d5e9c092deb58b46efcfbc137f9d63aef0d6681d8962214",
+      "contract/01_event.schema.json": "9491dbad2723fc567063558a43eb13708b8ea14065bdb76706d2c465326b9bd3",
+      "contract/02_packet.schema.json": "3b60586f46892b49ea123b7eef670dfb3677d321506b300545ac9dd7e0f86a36",
+      "contract/03_decision.schema.json": "a10d62c16726a2644fe82edf4de9e0c9e18f18fad5a4daeae8975551f649526c",
+      "contract/06_evaluation_rules.json": "bd2b801d1e0fafc9aeb8713b3636f09f7d547b981d6ce9edb187704fdf94c23c",
+      "reference/01_network_nodes.csv": "d6f43fb3f2978ec31e3cd256e398e013092a1da053f08c482cdf9887614744f6",
+      "reference/02_network_segments.csv": "0f90e0fca0368361bcc8d34db81df6324ad8543d0e26d8b8606010f78d29e7ed",
+      "reference/03_network.geojson": "c593ab744dc3d41d44db31f5b7e8ff720fc88ee6cf1f2485b83bc2c163ec1826",
+      "reference/04_hubs.csv": "a652057df2b8c4c887c4f0f6b5d9dcba4745d23800ce85fe59290552e2f3229f",
+      "reference/05_safe_stops.csv": "fef1baf5ec6646cce3e59efd416b41db42a3b74b62e460d8e180df73f83e7f26",
+      "reference/06_rsu_catalog.csv": "ef9b306cb80d7a6d031cbe74c2c13f09847e5c59ff85806aef46d9c0a0fa3f21",
+      "reference/07_sensor_catalog.csv": "ee67569b10fd0f927130254615fb93a63064d4d50d468b1e98addd228558cd9f",
+      "reference/08_weather_stations.csv": "afc8dff77d4b73214f748ed5829a9ab83a9ed85f2e866f43620067446dab1705",
+      "reference/09_odd_profiles.json": "2897e0c7532f99db2d95daa7c10003cb39a526341d1c96088e2ce0fc6d1e48e3",
+      "reference/10_vehicles.csv": "4d620af859c835d1b9ef657883e1da743fc298d0ff279aac7533d76fd83bde83",
+      "reference/11_transport_orders.csv": "980e259b7e734f63b35f2242edaef0b5cab0c544d3276fda806b7358216dc6d8",
+      "reference/12_remote_support_pool.json": "8614f3ab0f0c27167253a201a7106538bbe978937b4656c7e1775e27e417994d",
+      "reference/13_source_registry.csv": "fa12998cbec8006bb6de1c2292bc1a5addd7489f4275d3211a1d20d740879d34"
+    },
+    "git_content_verified": "Exact bytes or Windows checkout line-ending translation",
+    "scenarios": {
+      "TRAIN-001": {
+        "input_sha256": "d8b05a21faaaf070540d8517954e00760a948a9dd0b0d61a13fce03d911770d5",
+        "packets": 360,
+        "metrics": {
+          "source_status_proxy": {
+            "macro": 1.0,
+            "classes": {
+              "OK": 1.0
+            },
+            "confusion": {
+              "OK → OK": 18000
+            }
+          },
+          "road_final": {
+            "macro": 0.9993859280566239,
+            "classes": {
+              "OPEN": 0.9993859280566239
+            },
+            "confusion": {
+              "OPEN → OPEN": 30922,
+              "OPEN → UNKNOWN": 38
+            }
+          },
+          "road_stage3": {
+            "macro": 0.0,
+            "classes": {
+              "OPEN": 0.0
+            },
+            "confusion": {
+              "OPEN → UNKNOWN": 30960
+            }
+          },
+          "road_stage4": {
+            "macro": 0.9993859280566239,
+            "classes": {
+              "OPEN": 0.9993859280566239
+            },
+            "confusion": {
+              "OPEN → OPEN": 30922,
+              "OPEN → UNKNOWN": 38
+            }
+          },
+          "odd_active": {
+            "macro": 0.9993050729673384,
+            "classes": {
+              "COMPLIANT": 0.9993050729673384
+            },
+            "confusion": {
+              "COMPLIANT → COMPLIANT": 25884,
+              "COMPLIANT → UNKNOWN": 36
+            }
+          }
+        },
+        "labels_sha256": {
+          "01_segment_state.csv.gz": "4c82db679ea200c57587d4e4daef6d82efb0cecdd59fbb6c8e50dc4ab126391a",
+          "02_vehicle_odd.csv.gz": "9380bb4e11f193a74c5e089068793cb1eba632575ad94e9be298549d08c76a8e",
+          "03_source_faults.csv": "c0d773e73fc3bed0c34ba53c06a150fda8b250b0fa72a67ba09ce42abc7998be",
+          "04_incidents.csv": "34e0fbdc6de72d69243d340077f0b38c334c3d66e376d3a5b97f609aef36eae1",
+          "05_evaluation_windows.csv": "d8622613a845f10b629127eb33fc3610798c656d698b12d91f8ceaf4390a24d8"
+        },
+        "codes": {},
+        "confidence_mse": {
+          "source_status_proxy": 0.16000000000000003,
+          "road": 0.003510323007851648,
+          "odd_active": 0.12284585628230316
+        },
+        "guard_failures": 0,
+        "action_counts": {
+          "HOLD": 82,
+          "SAFE_STOP": 8,
+          "CONTINUE": 21643,
+          "LIMIT_SPEED": 4187
+        },
+        "switches": {
+          "motion": 132,
+          "full_recommendation": 784
+        },
+        "latency_ms": {
+          "p50": 717.8724999539554,
+          "p95": 1012.5878000399098,
+          "p99": 1197.6799999829382,
+          "max": 1437.2439000289887
+        },
+        "timing_environment": "Sequential local Python; controller.process only, excluding offline labels, detail export and baseline. Not Docker timing.",
+        "moving_outside_odd_steps": 0,
+        "report_sha256": "5d25bf4325b1667b587fbefbbcfb60a0477d79376c3487c50349d425bfe875e4"
+      },
+      "TRAIN-002": {
+        "input_sha256": "7943307760f745eaafbe770d4f02c4e869e8cfe1bc8a480d1097748a01b3d0ae",
+        "packets": 540,
+        "metrics": {
+          "source_status_proxy": {
+            "macro": 0.8965396207270224,
+            "classes": {
+              "DEGRADED": 0.7982062780269058,
+              "OK": 0.9948729634271392
+            },
+            "confusion": {
+              "DEGRADED → DEGRADED": 534,
+              "DEGRADED → OK": 270,
+              "OK → OK": 26196
+            }
+          },
+          "road_final": {
+            "macro": 0.9934905854122531,
+            "classes": {
+              "OPEN": 0.999481170824506,
+              "PARTIAL_BLOCK": 0.9875
+            },
+            "confusion": {
+              "OPEN → OPEN": 46234,
+              "OPEN → PARTIAL_BLOCK": 2,
+              "OPEN → UNKNOWN": 44,
+              "PARTIAL_BLOCK → OPEN": 2,
+              "PARTIAL_BLOCK → PARTIAL_BLOCK": 158
+            }
+          },
+          "road_stage3": {
+            "macro": 0.0,
+            "classes": {
+              "OPEN": 0.0,
+              "PARTIAL_BLOCK": 0.0
+            },
+            "confusion": {
+              "OPEN → UNKNOWN": 46280,
+              "PARTIAL_BLOCK → UNKNOWN": 160
+            }
+          },
+          "road_stage4": {
+            "macro": 0.557912561839472,
+            "classes": {
+              "OPEN": 0.9995460539115021,
+              "PARTIAL_BLOCK": 0.11627906976744186
+            },
+            "confusion": {
+              "OPEN → OPEN": 46240,
+              "OPEN → PARTIAL_BLOCK": 2,
+              "OPEN → UNKNOWN": 38,
+              "PARTIAL_BLOCK → OPEN": 2,
+              "PARTIAL_BLOCK → PARTIAL_BLOCK": 10,
+              "PARTIAL_BLOCK → UNKNOWN": 148
+            }
+          },
+          "odd_active": {
+            "macro": 0.9993043209399397,
+            "classes": {
+              "COMPLIANT": 0.9993043209399397
+            },
+            "confusion": {
+              "COMPLIANT → COMPLIANT": 38784,
+              "COMPLIANT → UNKNOWN": 36,
+              "COMPLIANT → VIOLATED": 18
+            }
+          }
+        },
+        "labels_sha256": {
+          "01_segment_state.csv.gz": "971813be2b5e2573a39975ca82483c462ffb33be09b12d6a04f56d8f3ceabce7",
+          "02_vehicle_odd.csv.gz": "2217a3b68a3b9a70c683e51bc3803f30ef42efe487166330fb6b22b38c4181ac",
+          "03_source_faults.csv": "c00231ed19994c15031a924cea9b724366654423013ed604dc81ed28312fff27",
+          "04_incidents.csv": "7d7b91b1d8e1a0164ae03a45c5754a9b2626bbf302ed5263b68c27afbc2b7ebb",
+          "05_evaluation_windows.csv": "a84cea58d76d1c259369e1638dd687947cdee367d6b923e73b1e3fba1b20b173"
+        },
+        "codes": {
+          "source_fault_codes": {
+            "DELAY": {
+              "f1": 0.9795918367346939,
+              "tp": 144,
+              "fp": 0,
+              "fn": 6
+            },
+            "DRIFT": {
+              "f1": 0.0,
+              "tp": 0,
+              "fp": 0,
+              "fn": 300
+            },
+            "FREEZE": {
+              "f1": 0.9781021897810219,
+              "tp": 134,
+              "fp": 0,
+              "fn": 6
+            },
+            "PACKET_LOSS": {
+              "f1": 0.0,
+              "tp": 0,
+              "fp": 426,
+              "fn": 0
+            },
+            "STALE": {
+              "f1": 0.9586374695863747,
+              "tp": 197,
+              "fp": 0,
+              "fn": 17
+            }
+          },
+          "odd_codes": {
+            "MAP_AGE": {
+              "f1": 0.0,
+              "tp": 0,
+              "fp": 18,
+              "fn": 0
+            }
+          }
+        },
+        "confidence_mse": {
+          "source_status_proxy": 0.16125833333333334,
+          "road": 0.015124723910432278,
+          "odd_active": 0.12330767820380777
+        },
+        "guard_failures": 0,
+        "action_counts": {
+          "HOLD": 195,
+          "SAFE_STOP": 8,
+          "CONTINUE": 33530,
+          "LIMIT_SPEED": 5141,
+          "REROUTE": 6
+        },
+        "switches": {
+          "motion": 265,
+          "full_recommendation": 926
+        },
+        "latency_ms": {
+          "p50": 688.6715999571607,
+          "p95": 934.9432999733835,
+          "p99": 1115.2467000065371,
+          "max": 1427.6922999415547
+        },
+        "timing_environment": "Sequential local Python; controller.process only, excluding offline labels, detail export and baseline. Not Docker timing.",
+        "moving_outside_odd_steps": 0,
+        "report_sha256": "42d577268ead5261658e9321f36365a6efd707a7837b7e232d90ae21098e6ff7"
+      },
+      "TRAIN-003": {
+        "input_sha256": "331dc600cf01c56c58d51654c89fec885bd019c63c265e0f83e880d3a42d41bf",
+        "packets": 540,
+        "metrics": {
+          "source_status_proxy": {
+            "macro": 0.9972110509317879,
+            "classes": {
+              "DEGRADED": 0.994535519125683,
+              "OK": 0.9998865827378927
+            },
+            "confusion": {
+              "DEGRADED → DEGRADED": 546,
+              "OK → DEGRADED": 6,
+              "OK → OK": 26448
+            }
+          },
+          "road_final": {
+            "macro": 0.9956095767458961,
+            "classes": {
+              "OPEN": 0.9956095767458961
+            },
+            "confusion": {
+              "OPEN → OPEN": 46034,
+              "OPEN → UNKNOWN": 406
+            }
+          },
+          "road_stage3": {
+            "macro": 0.0,
+            "classes": {
+              "OPEN": 0.0
+            },
+            "confusion": {
+              "OPEN → UNKNOWN": 46440
+            }
+          },
+          "road_stage4": {
+            "macro": 0.9966186653991164,
+            "classes": {
+              "OPEN": 0.9966186653991164
+            },
+            "confusion": {
+              "OPEN → OPEN": 46127,
+              "OPEN → UNKNOWN": 313
+            }
+          },
+          "odd_active": {
+            "macro": 0.8908766768976886,
+            "classes": {
+              "COMPLIANT": 0.9825428746997374,
+              "VIOLATED": 0.7992104790956397
+            },
+            "confusion": {
+              "COMPLIANT → COMPLIANT": 35177,
+              "COMPLIANT → UNKNOWN": 334,
+              "COMPLIANT → VIOLATED": 916,
+              "VIOLATED → UNKNOWN": 203,
+              "VIOLATED → VIOLATED": 2227
+            }
+          }
+        },
+        "labels_sha256": {
+          "01_segment_state.csv.gz": "cd335f9402e8073d482b90f8614a59fad52356d753616b8c7e2c7b73d3bf0f9d",
+          "02_vehicle_odd.csv.gz": "314e027e40ca297bd16db1701a6b0a412faa11685e1974680dc5acba364d4b35",
+          "03_source_faults.csv": "550f2c08088d4b810572e173dab2c4db4bcc45d481f86471fa260ea0947f8275",
+          "04_incidents.csv": "9af79fcb176268c9c9042fb3a8e0bf5eecda46ec19c505e523417bdeed0f6927",
+          "05_evaluation_windows.csv": "3ab39beae1acec3d0c9a8c60d77e7ca5bba0d07a8fa39217d3fcb517938e9f9c"
+        },
+        "codes": {
+          "source_fault_codes": {
+            "BIAS": {
+              "f1": 0.0,
+              "tp": 0,
+              "fp": 0,
+              "fn": 180
+            },
+            "DELAY": {
+              "f1": 0.6545454545454545,
+              "tp": 180,
+              "fp": 190,
+              "fn": 0
+            },
+            "PACKET_LOSS": {
+              "f1": 0.5081967213114754,
+              "tp": 186,
+              "fp": 360,
+              "fn": 0
+            }
+          },
+          "odd_codes": {
+            "MAP_AGE": {
+              "f1": 0.0,
+              "tp": 0,
+              "fp": 18,
+              "fn": 0
+            },
+            "V2X": {
+              "f1": 0.8086612533833021,
+              "tp": 1942,
+              "fp": 919,
+              "fn": 0
+            },
+            "VISIBILITY": {
+              "f1": 0.5813692480359147,
+              "tp": 259,
+              "fp": 35,
+              "fn": 338
+            }
+          }
+        },
+        "confidence_mse": {
+          "source_status_proxy": 0.15930000000000002,
+          "road": 0.005531402060214169,
+          "odd_active": 0.2618548197282609
+        },
+        "guard_failures": 0,
+        "action_counts": {
+          "HOLD": 3740,
+          "SAFE_STOP": 836,
+          "CONTINUE": 24974,
+          "LIMIT_SPEED": 9286,
+          "REROUTE": 44
+        },
+        "switches": {
+          "motion": 1602,
+          "full_recommendation": 2024
+        },
+        "latency_ms": {
+          "p50": 661.6672000382096,
+          "p95": 904.4109999667853,
+          "p99": 1076.3770999619737,
+          "max": 1378.6118999123573
+        },
+        "timing_environment": "Sequential local Python; controller.process only, excluding offline labels, detail export and baseline. Not Docker timing.",
+        "moving_outside_odd_steps": 0,
+        "report_sha256": "995a3d40eacd2c69ef0fe124476891e6c519d892e93b52aafcc40e3dd5d40cc2"
+      },
+      "TRAIN-004": {
+        "input_sha256": "5107eec600ce5fc78574379de43616bd0a7e84672b065d64ee47103c27b735e1",
+        "packets": 720,
+        "metrics": {
+          "source_status_proxy": {
+            "macro": 0.9105691090196361,
+            "classes": {
+              "DEGRADED": 0.7338129496402878,
+              "FAILED": 1.0,
+              "OK": 0.9978943774186205
+            },
+            "confusion": {
+              "DEGRADED → DEGRADED": 204,
+              "DEGRADED → OK": 144,
+              "FAILED → FAILED": 578,
+              "OK → DEGRADED": 4,
+              "OK → OK": 35070
+            }
+          },
+          "road_final": {
+            "macro": 0.9279207349561519,
+            "classes": {
+              "CONGESTED": 0.798090692124105,
+              "OPEN": 0.9885784894885368,
+              "PARTIAL_BLOCK": 0.997093023255814
+            },
+            "confusion": {
+              "CONGESTED → CONGESTED": 836,
+              "CONGESTED → OPEN": 253,
+              "CONGESTED → PARTIAL_BLOCK": 1,
+              "CONGESTED → UNKNOWN": 169,
+              "OPEN → OPEN": 59203,
+              "OPEN → UNKNOWN": 1114,
+              "PARTIAL_BLOCK → OPEN": 1,
+              "PARTIAL_BLOCK → PARTIAL_BLOCK": 343
+            }
+          },
+          "road_stage3": {
+            "macro": 0.0,
+            "classes": {
+              "CONGESTED": 0.0,
+              "OPEN": 0.0,
+              "PARTIAL_BLOCK": 0.0
+            },
+            "confusion": {
+              "CONGESTED → UNKNOWN": 1259,
+              "OPEN → UNKNOWN": 60317,
+              "PARTIAL_BLOCK → UNKNOWN": 344
+            }
+          },
+          "road_stage4": {
+            "macro": 0.5619753030538037,
+            "classes": {
+              "CONGESTED": 0.0,
+              "OPEN": 0.9804850085985595,
+              "PARTIAL_BLOCK": 0.7054409005628518
+            },
+            "confusion": {
+              "CONGESTED → OPEN": 1041,
+              "CONGESTED → PARTIAL_BLOCK": 1,
+              "CONGESTED → UNKNOWN": 217,
+              "OPEN → OPEN": 59010,
+              "OPEN → UNKNOWN": 1307,
+              "PARTIAL_BLOCK → OPEN": 1,
+              "PARTIAL_BLOCK → PARTIAL_BLOCK": 188,
+              "PARTIAL_BLOCK → UNKNOWN": 155
+            }
+          },
+          "odd_active": {
+            "macro": 0.9854287375961732,
+            "classes": {
+              "COMPLIANT": 0.9863317151340906,
+              "VIOLATED": 0.984525760058256
+            },
+            "confusion": {
+              "COMPLIANT → COMPLIANT": 41854,
+              "COMPLIANT → UNKNOWN": 905,
+              "COMPLIANT → VIOLATED": 255,
+              "VIOLATED → VIOLATED": 8112
+            }
+          }
+        },
+        "labels_sha256": {
+          "01_segment_state.csv.gz": "06d0e0d79279baec7830d84f1eba617fd9426024bd987c2fa39cb7419950b2e9",
+          "02_vehicle_odd.csv.gz": "95fe532814494428d5b72f88dbff68bb899316194f08ec580b88d1f6932f735e",
+          "03_source_faults.csv": "01473ce02214558b42dfa9b327f6b2b37cd24fdbae2734b36556461c8f32ec51",
+          "04_incidents.csv": "c110c1da38d01cd5a2f56729412fedadeed4e3d00663bd50046cbd6f19d61e89",
+          "05_evaluation_windows.csv": "4e9c2d53bf274b409a5eb86820d0794dfbe857d556b2e1ac70ca9e616633a476"
+        },
+        "codes": {
+          "source_fault_codes": {
+            "BYZANTINE": {
+              "f1": 0.0,
+              "tp": 0,
+              "fp": 0,
+              "fn": 196
+            },
+            "OUTAGE": {
+              "f1": 1.0,
+              "tp": 578,
+              "fp": 0,
+              "fn": 0
+            },
+            "PACKET_LOSS": {
+              "f1": 0.0,
+              "tp": 0,
+              "fp": 580,
+              "fn": 0
+            },
+            "STALE": {
+              "f1": 0.9423728813559322,
+              "tp": 139,
+              "fp": 4,
+              "fn": 13
+            }
+          },
+          "odd_codes": {
+            "MAP_AGE": {
+              "f1": 1.0,
+              "tp": 3258,
+              "fp": 0,
+              "fn": 0
+            },
+            "RAIN": {
+              "f1": 0.9744052996085516,
+              "tp": 4854,
+              "fp": 255,
+              "fn": 0
+            }
+          }
+        },
+        "confidence_mse": {
+          "source_status_proxy": 0.15869000000000003,
+          "road": 0.016274623700407945,
+          "odd_active": 0.16992794156853241
+        },
+        "guard_failures": 0,
+        "action_counts": {
+          "HOLD": 9943,
+          "SAFE_STOP": 8,
+          "CONTINUE": 30921,
+          "LIMIT_SPEED": 10966,
+          "REROUTE": 2
+        },
+        "switches": {
+          "motion": 396,
+          "full_recommendation": 1219
+        },
+        "latency_ms": {
+          "p50": 616.1151999840513,
+          "p95": 860.1112999022007,
+          "p99": 1037.625900004059,
+          "max": 1251.0579000227153
+        },
+        "timing_environment": "Sequential local Python; controller.process only, excluding offline labels, detail export and baseline. Not Docker timing.",
+        "moving_outside_odd_steps": 0,
+        "report_sha256": "a84b3d87f9e4396d646c174aec900e790110eefa484c0d8a2edbda770a55d71a"
+      }
+    }
   }
 ]
