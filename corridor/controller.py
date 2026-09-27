@@ -3,6 +3,7 @@ from .state import State
 from . import basic
 from .trust import Trust
 from .fusion import Fusion
+from . import odd
 
 
 class Controller:
@@ -19,6 +20,7 @@ class Controller:
         self.fusion = Fusion(self.state, decision['source_assessments'], self.trust.excluded)
         decision['state_estimates'] = self.fusion.road_estimates()
         basic.policy(self.state, decision)
+        decision['vehicle_assessments'] = odd.assessments(self.state,self.fusion,decision)
         self.contract.validate(decision)
         self.state.remember(decision)
         return decision
