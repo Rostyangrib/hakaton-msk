@@ -33,6 +33,9 @@ def record(repo,data,results,commit,label,description,registry,markdown,safety=N
                                    moving_outside_odd_steps=risks.get(sid,{}).get('moving_outside_odd_steps'),
                                    report_sha256=hashlib.sha256((results/(sid+'.json')).read_bytes()).hexdigest()) for sid,r in zip(SCENARIOS,reports)})
     entries=json.loads(registry.read_text(encoding='utf-8')) if registry.exists() else []
+    for previous in entries:
+        for sid in SCENARIOS:
+            assert previous['scenarios'][sid]['input_sha256']==entry['scenarios'][sid]['input_sha256'],'Input dataset changed: '+sid
     old=next((i for i,e in enumerate(entries) if e['code_commit']==commit),None)
     if old is None:entries.append(entry)
     else:entries[old]=entry

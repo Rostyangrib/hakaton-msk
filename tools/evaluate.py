@@ -39,7 +39,15 @@ def quantiles(values):
     return {name:ordered[min(len(ordered)-1,math.ceil(len(ordered)*fraction)-1)] for name,fraction in [('p50',.5),('p95',.95),('p99',.99),('max',1)]}
 
 
+def runtime_hashes():
+    root=Path(__file__).resolve().parent.parent
+    return {p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+            for group in ('corridor','contract','reference') for p in sorted((root/group).rglob('*'))
+            if p.is_file() and '__pycache__' not in p.parts}
+
+
 def evaluate(data,sid,out,details=False):
+    frozen_runtime=runtime_hashes()
     ref=Reference(data/'01_reference'); controller=Controller(ref); baseline=State(ref)
     directory=data/'02_train'/sid
     road_truth={(r['timestamp'],r['segment_id']):r for r in csv_rows(directory/'labels/01_segment_state.csv.gz')}
@@ -143,9 +151,8 @@ def evaluate(data,sid,out,details=False):
                 assumptions=['Source status proxy: OUTAGE=FAILED, other labelled fault=DEGRADED, no fault=OK; half-open fault intervals.',
                              'No official action utility or unjustified-switch score. All four TRAIN scenarios informed error analysis and manual rule changes; this comparison is not an independent held-out estimate.'])
     if detail_stream is not None: detail_stream.close()
-    report['runtime_sha256']={str(p.relative_to(Path(__file__).resolve().parent.parent)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest()
-                              for group in ('corridor','contract','reference') for p in sorted((Path(__file__).resolve().parent.parent/group).rglob('*'))
-                              if p.is_file() and '__pycache__' not in p.parts}
+    assert runtime_hashes()==frozen_runtime,'Runtime files changed during evaluation'
+    report['runtime_sha256']=frozen_runtime
     report['input_sha256']=hashlib.sha256((directory/'packets.ndjson.gz').read_bytes()).hexdigest()
     report['details_saved']=details
     report['timing_environment']='Sequential local Python; controller.process only, excluding offline labels, detail export and baseline. Not Docker timing.'

@@ -220,6 +220,13 @@ class ImprovementTests(unittest.TestCase):
         with patch('corridor.routing.telemetry',return_value=e),patch('corridor.routing.check',return_value={'odd_status':'COMPLIANT'}):
             self.assertAlmostEqual(router.costs('AV-001',True)['S001'],length/(30/3.6))
 
+    def test_partial_primary_class_keeps_independent_congestion_cap(self):
+        from corridor.limits import segment_speed_limit
+        e=dict(segment_id='S001',offset_m=0,event_time='1970-01-01T00:00:00Z')
+        fusion=WeatherFusion(None)
+        fusion.roads={'S001':dict(state='PARTIAL_BLOCK',partial_block=True,load='CONGESTED',queue=20)}
+        self.assertEqual(segment_speed_limit(self.state,fusion,'AV-001',e),30)
+
     def test_stop_approach_needs_confirmed_future_odd(self):
         e=dict(segment_id='S001',offset_m=0,event_time='1970-01-01T00:00:00Z')
         fusion=WeatherFusion(None)

@@ -8,7 +8,7 @@ def segment_speed_limit(state,fusion,vid,event,sid=None,future=False):
     limits=[float(segment['speed_limit_kmh']),float(state.ref.vehicles[vid]['nominal_max_speed_kmh'])]
     estimate=fusion.roads[sid]
     if estimate['state']=='PARTIAL_BLOCK' or estimate.get('partial_block'): limits.append(40)
-    if estimate['state']=='CONGESTED' or (estimate['queue'] or 0)>=100: limits.append(30)
+    if estimate['state']=='CONGESTED' or estimate.get('load')=='CONGESTED' or (estimate['queue'] or 0)>=100: limits.append(30)
     position=state.ref.position(sid,float(segment['length_m'])/2 if future else event['offset_m'])
     weather=fusion.weather(position)
     if weather:
