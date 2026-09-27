@@ -1,4 +1,5 @@
 import unittest
+import random
 from corridor.routing import dijkstra, route_choice
 
 
@@ -20,3 +21,23 @@ class RoutingTests(unittest.TestCase):
 
     def test_full_list_comparison(self):
         self.assertEqual(route_choice(['a','b'],['a','c'],1,100),'REROUTE')
+
+    def test_differential_small_graphs(self):
+        rng=random.Random(42)
+        for _ in range(100):
+            segments={}; outgoing={}; costs={}
+            for a in range(5):
+                for b in range(5):
+                    if a!=b and rng.random()<.25:
+                        sid=f'{a}{b}'; segments[sid]=dict(to_node=b); outgoing.setdefault(a,[]).append(sid); costs[sid]=rng.randint(1,5)
+            candidates=[]
+            def enumerate_paths(node,seen,path,cost):
+                if node==4: candidates.append((cost,tuple(path))); return
+                for sid in outgoing.get(node,[]):
+                    end=segments[sid]['to_node']
+                    if end not in seen: enumerate_paths(end,seen|{end},path+[sid],cost+costs[sid])
+            enumerate_paths(0,{0},[],0)
+            result=dijkstra(segments,outgoing,0,4,costs)
+            if candidates:
+                cost,path=min(candidates); self.assertEqual(result,(list(path),cost))
+            else: self.assertIsNone(result[0])

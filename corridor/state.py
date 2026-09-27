@@ -1,7 +1,9 @@
 from collections import defaultdict, deque
 from datetime import datetime
+from functools import lru_cache
 
 
+@lru_cache(maxsize=65536)
 def timestamp(value):
     return datetime.fromisoformat(value.replace('Z', '+00:00')).timestamp()
 
@@ -22,9 +24,11 @@ class State:
         self.recommendations = deque()
         self.final = False
         self.now = 0
+        self.watermark = -60
         self.diagnostics = []
         self.inactivity = defaultdict(int)
         self._event_cache = {}
+        self._ordered_current = None
 
     def key(self, event):
         kind = event['event_type']
@@ -46,12 +50,14 @@ class State:
 
     def ingest(self, packet):
         self._event_cache = {}
+        self._ordered_current = None
         if self.scenario_id != packet['scenario_id'] or self.final:
             self.reset(packet['scenario_id'])
         now = timestamp(packet['decision_time'])
         if now < self.now:
             raise ValueError('Decision time moved backwards')
         self.now = now
+        self.watermark=timestamp(packet['watermark_time']) if 'watermark_time' in packet else now-60
         self.diagnostics = []
         for event in packet['events']:
             if event['scenario_id'] != self.scenario_id:
@@ -99,7 +105,9 @@ class State:
     def events(self, kind=None, entity=None):
         key = kind,entity
         if key not in self._event_cache:
-            self._event_cache[key] = [event for (k, e, _), event in sorted(self.current.items())
+            if self._ordered_current is None or len(self._ordered_current) != len(self.current):
+                self._ordered_current=sorted(self.current.items())
+            self._event_cache[key] = [event for (k, e, _), event in self._ordered_current
                                      if (kind is None or kind == k) and (entity is None or entity == e)]
         return self._event_cache[key]
 

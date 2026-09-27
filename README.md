@@ -10,4 +10,14 @@ $env:CORRIDOR_REFERENCE='<путь-к-01_reference>'
 python -m unittest discover -s tests -v
 ```
 
-План и ограничения — IMPLEMENTATION_PLAN.md; фактическая готовность — PROJECT_STATUS.md. На этапе интерфейса UNKNOWN/HOLD является технической политикой, а не завершённым алгоритмом.
+Реализованы потоковое состояние, FDIR и доверие, объединение наблюдений, ODD, два направленных маршрута, ограничения скорости, совместное назначение площадок и поддержки, финальный контроль решений. Правило CONTINUE/REROUTE сохранено без порога выигрыша и cooldown.
+
+```sh
+docker build --platform linux/amd64 -t corridor-solution:final .
+docker run --rm -i --network none --cpus 8 --memory 16g corridor-solution:final < packets.ndjson > results.ndjson
+docker save -o solution-image.tar corridor-solution:final
+```
+
+Демонстрация на синтетических ситуациях с реальными справочниками: `python tools/demo.py`. Детали — DEMO.md. Для полного набора тестов укажите CORRIDOR_REFERENCE на исходный 01_reference рядом с 02_train: два интеграционных теста читают TRAIN-001 по этому явно переданному пути. Данные в репозиторий не включаются.
+
+План и ограничения — IMPLEMENTATION_PLAN.md; фактическая готовность — PROJECT_STATUS.md. Это текущая версия для предварительной технической проверки. Диагностический HOLD в невозможной ситуации не доказывает физическую безопасность; confidence остаётся эвристикой. Инструменты evaluate/quality_report предназначены только для офлайн-анализа и не входят в Docker runtime.

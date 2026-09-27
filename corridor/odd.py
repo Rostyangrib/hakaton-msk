@@ -27,7 +27,7 @@ def check(state, fusion, vid, event=None, segment_id=None, future=False):
         weather = fusion.weather(position)
     except ValueError:
         weather = None
-    if weather is None or weather['agreement'] < 0.6:
+    if weather is None:
         unknown = True
     else:
         for field,threshold,code,minimum in (
@@ -35,7 +35,11 @@ def check(state, fusion, vid, event=None, segment_id=None, future=False):
             ('rain_level',profile['max_rain_level'],'RAIN',False),
         ):
             value = weather[field]
-            if (value < threshold if minimum else value > threshold): codes.append(code)
+            lower,upper=weather.get('ranges',{}).get(field,(value,value))
+            all_violated = upper < threshold if minimum else lower > threshold
+            all_compliant = lower >= threshold if minimum else upper <= threshold
+            if all_violated: codes.append(code)
+            elif not all_compliant: unknown=True
             certainty.append(weather['confidence']*(0.5+0.5*min(1,abs(value-threshold)/max(threshold,1))))
         if weather['wind_mps'] > profile['max_crosswind_mps']:
             unknown = True

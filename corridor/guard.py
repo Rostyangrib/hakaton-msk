@@ -87,7 +87,7 @@ def finalize(state,fusion,router,contract,packet,decision):
     try:
         contract.validate(decision)
     except Exception as exc:
-        state.diagnostics.append('contract_recovery:'+type(exc).__name__)
+        state.diagnostics.append('contract_recovery:'+type(exc).__name__+':'+str(exc).splitlines()[0])
         decision=skeleton(packet,state.ref)
         diagnostic_support(state,decision)
         contract.validate(decision)

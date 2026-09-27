@@ -15,6 +15,7 @@ class Trust:
         self.recovery = defaultdict(int)
         self.started = None
         self.generation = None
+        self.frozen = {}
 
     def assess(self, state):
         if self.generation != state.generation or self.scenario != state.scenario_id or self.started is None or state.now < self.started:
@@ -47,13 +48,29 @@ class Trust:
             positive = False
             evidence_ids = set()
             residuals = []
+            if sid in self.frozen:
+                latest=max((e for e in useful if e['event_type']=='ROAD_OBSERVATION'),key=lambda e:timestamp(e['event_time']),default=None)
+                signature=tuple(latest.get(f) for f in ('speed_kmh','flow_vph','occupancy_pct','queue_estimate_m')) if latest else None
+                if signature==self.frozen[sid] and latest and state.now-timestamp(latest['received_time'])<=max(15,3*period): faults.add('FREEZE')
+                else: self.frozen.pop(sid,None)
             for key, history in state.history.items():
                 if key[2] != sid or key[0] != 'ROAD_OBSERVATION': continue
                 relevant = [e for e in history if 0 <= state.now-timestamp(e['event_time']) <= 60]
                 signatures = [tuple(e.get(f) for f in ('speed_kmh','flow_vph','occupancy_pct','queue_estimate_m')) for e in relevant]
+                if signatures:
+                    tail=1
+                    while tail<len(signatures) and signatures[-tail-1]==signatures[-1]: tail+=1
+                    span=timestamp(relevant[-1]['received_time'])-timestamp(relevant[-tail]['received_time'])
+                    if tail>=3 and len(signatures)-tail>=3 and span>=max(30,6*period) and sum(v is not None for v in signatures[-1])>=3:
+                        faults.add('FREEZE'); self.frozen[sid]=signatures[-1]
+                if (len(relevant)>=3 and timestamp(relevant[-1]['event_time'])-timestamp(relevant[0]['event_time'])>=max(15,3*period)
+                        and len(set(signatures))==1 and sum(v is not None for v in signatures[-1])>=3
+                        and len({e.get('sequence_no') for e in relevant})==1
+                        and relevant[0].get('sequence_no') is not None):
+                    faults.add('FREEZE')
                 for e in relevant:
                     peers = [p for other, values in state.history.items() if other[0] == key[0] and other[1] == key[1] and other[2] != sid
-                             for p in values if abs(timestamp(p['event_time'])-timestamp(e['event_time'])) <= period]
+                             for p in values if timestamp(p['event_time']) <= state.now and abs(timestamp(p['event_time'])-timestamp(e['event_time'])) <= period]
                     if not peers: continue
                     closest = {}
                     for p in peers:
@@ -65,7 +82,7 @@ class Trust:
                     if abs(residual) <= 10:
                         positive = True
                         evidence_ids.add(e['event_id'])
-                if len(signatures) >= 3 and len(set(signatures)) == 1 and residuals and any(abs(r) > 10 for _,r in residuals): faults.add('FREEZE')
+                if len(signatures)>=3 and len(set(signatures))==1 and sum(v is not None for v in signatures[-1])>=3 and residuals and any(abs(r)>10 for _,r in residuals): faults.add('FREEZE')
             if len(residuals) >= 3:
                 residuals.sort()
                 center = median(r for _,r in residuals)
@@ -84,9 +101,12 @@ class Trust:
                     elif own and own in votes:
                         positive = True
                         evidence_ids.add(e['event_id'])
-            sequences = sorted({e['sequence_no'] for key,h in state.history.items() if key[2] == sid for e in h
-                                if 'sequence_no' in e and 2*period <= state.now-timestamp(e['event_time']) <= 60})
-            if len(sequences) >= 3 and sequences[-1]-sequences[0]+1 > len(sequences)+1: faults.add('PACKET_LOSS')
+            sequence_events=[e for key,h in state.history.items() if key[2] == sid for e in h
+                             if 'sequence_no' in e and state.watermark-60 <= timestamp(e['event_time']) <= state.watermark]
+            sequences = sorted({e['sequence_no'] for e in sequence_events})
+            repeat_counter=len(sequences)<len(sequence_events)
+            if (len(sequences)>=3 and not repeat_counter and 'DELAY' not in faults
+                    and sequences[-1]-sequences[0]+1>len(sequences)+1): faults.add('PACKET_LOSS')
             window = self.evidence[sid]
             while window and window[0][0] < state.now-60: window.popleft()
             if faults: evidence_ids.update(e['event_id'] for e in recent if state.fresh(e,120))

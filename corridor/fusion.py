@@ -55,12 +55,13 @@ class Fusion:
                         chosen,agreement = 'CLOSED',scores['CLOSED']/total
                 elif scores['PARTIAL_BLOCK']:
                     count = sum(v == 'PARTIAL_BLOCK' for _,_,v in observations.values())
-                    if count >= 2 and scores['PARTIAL_BLOCK']/total >= 0.5:
+                    trusted_single=any(v=='PARTIAL_BLOCK' and self.sources[e['source_id']]['trust_score']>=0.7 for e,w,v in observations.values())
+                    if (count>=2 or trusted_single) and scores['PARTIAL_BLOCK']/total >= 0.5:
                         chosen,agreement = 'PARTIAL_BLOCK',scores['PARTIAL_BLOCK']/total
                 elif scores['CONGESTED']:
                     # Availability evidence OPEN is compatible with measured congestion.
                     chosen,agreement = 'CONGESTED',1.0
-                elif len(observations) >= 2:
+                elif len(observations)>=2 or any(self.sources[e['source_id']]['trust_score']>=0.7 for e,w,v in observations.values()):
                     chosen,agreement = 'OPEN',1.0
             weights = [w for _,w,_ in observations.values()]
             conf = confidence(agreement,weights) if chosen != 'UNKNOWN' else 0.35
@@ -81,6 +82,8 @@ class Fusion:
             self.weather_cache[position] = None
             return None
         result = {}
+        result['ranges'] = {field:(min(e[field] for e,w in events),max(e[field] for e,w in events))
+                            for field in ('visibility_m','rain_level','wind_mps')}
         agreements = []
         for field in ('visibility_m','rain_level','wind_mps'):
             value = weighted_median([(e[field],w) for e,w in events])

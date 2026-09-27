@@ -94,6 +94,6 @@ def policy(state, decision):
         if inactive(state, vid, event):
             action.update(motion_action='NO_ACTION', rationale_codes=['AT_HUB_OR_INACTIVE'], confidence=0.7)
         elif basic_allowed(state, vid, event, estimates):
-            action.update(motion_action='CONTINUE', rationale_codes=estimates[event['segment_id']]['rationale_codes'], confidence=0.7)
+            action.update(motion_action='CONTINUE', rationale_codes=list(estimates[event['segment_id']]['rationale_codes']), confidence=0.7)
         else:
             action.update(motion_action='HOLD', rationale_codes=['LOW_CONFIDENCE'], confidence=0.35)
