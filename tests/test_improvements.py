@@ -36,6 +36,26 @@ class ImprovementTests(unittest.TestCase):
         fusion=Fusion(self.state,scores,set(),{'CAM-001':{'availability':.9,'speed':.1}})
         self.assertGreater(fusion.weight(event()),fusion.weight(event(),'speed'))
 
+    def test_fresh_rsu_trust_is_not_an_age_reduced_threshold(self):
+        from corridor.basic import freshness
+        e=event('v',lane_status='OPEN',advisory_speed_kmh=80)
+        e.update(event_type='V2X_MESSAGE',source_id='RSU-01')
+        self.state.ingest(packet([e]))
+        from corridor.state import timestamp
+        self.state.now=timestamp(e['event_time'])+freshness(self.state.ref,e)*.9
+        fusion=Fusion(self.state,[dict(source_id='RSU-01',trust_score=.9)],set(),{'RSU-01':{'availability':.9}})
+        self.assertLess(fusion.weight(e),.7)
+        fusion.road_estimates()
+        self.assertEqual(fusion.roads[e['segment_id']]['state'],'OPEN')
+
+    def test_zero_availability_weight_is_not_a_second_vote(self):
+        a=event('a',lane_status='OPEN',lane_count_open_estimate=int(self.state.ref.segments['S005']['lanes']))
+        b=dict(a,event_id='b',source_id='DET-001')
+        self.state.ingest(packet([a,b]))
+        fusion=Fusion(self.state,[dict(source_id=s,trust_score=.5) for s in ['CAM-001','DET-001']],set(),{'CAM-001':{'availability':.5},'DET-001':{'availability':0,'speed':.5}})
+        fusion.road_estimates()
+        self.assertEqual(fusion.roads['S005']['state'],'UNKNOWN')
+
     def test_queue_without_speed_is_not_free_flow(self):
         sid='S005';lanes=int(self.state.ref.segments[sid]['lanes'])
         for i in range(3):

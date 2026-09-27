@@ -57,15 +57,15 @@ class Fusion:
             agreement = 0
             if total:
                 if scores['CLOSED']:
-                    count = sum(v == 'CLOSED' for _,_,v in observations.values())
+                    count = sum(w>0 and v == 'CLOSED' for _,w,v in observations.values())
                     if count >= 2 and scores['CLOSED']/total >= 0.65:
                         chosen,agreement = 'CLOSED',scores['CLOSED']/total
                 elif scores['PARTIAL_BLOCK']:
-                    count = sum(v == 'PARTIAL_BLOCK' for _,_,v in observations.values())
-                    trusted_single=any(v=='PARTIAL_BLOCK' and self.sources[e['source_id']]['trust_score']>=0.7 for e,w,v in observations.values())
+                    count = sum(w>0 and v == 'PARTIAL_BLOCK' for _,w,v in observations.values())
+                    trusted_single=any(w>0 and v=='PARTIAL_BLOCK' and self.feature_trust.get(e['source_id'],{}).get('availability',self.sources[e['source_id']]['trust_score'])>=0.7 for e,w,v in observations.values())
                     if (count>=2 or trusted_single) and scores['PARTIAL_BLOCK']/total >= 0.5:
                         chosen,agreement = 'PARTIAL_BLOCK',scores['PARTIAL_BLOCK']/total
-                elif sum(v=='OPEN' for e,w,v in observations.values())>=2 or any(v=='OPEN' and w>=0.7 for e,w,v in observations.values()):
+                elif sum(w>0 and v=='OPEN' for e,w,v in observations.values())>=2 or any(w>0 and v=='OPEN' and self.feature_trust.get(e['source_id'],{}).get('availability',self.sources[e['source_id']]['trust_score'])>=0.7 for e,w,v in observations.values()):
                     chosen,agreement = 'OPEN',1.0
             availability=chosen
             load_weights={}
