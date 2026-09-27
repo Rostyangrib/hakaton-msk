@@ -27,6 +27,7 @@ def record(repo,data,results,commit,label,description,registry,markdown,safety=N
     entry=dict(code_commit=commit,label=label,description=description,runtime_sha256=runtime,
                git_content_verified='Exact bytes or Windows checkout line-ending translation',
                scenarios={sid:dict(input_sha256=r['input_sha256'],packets=r['packets'],metrics=r['metrics'],
+                                   labels_sha256={f.name:hashlib.sha256(f.read_bytes()).hexdigest() for f in sorted((data/'02_train'/sid/'labels').iterdir()) if f.is_file()},
                                    codes=r['codes'],confidence_mse=r['confidence_mse'],guard_failures=r['guard_failures'],
                                    action_counts=r['action_counts'],switches=r['switches'],latency_ms=r['latency_ms'],
                                    timing_environment=r.get('timing_environment'),
@@ -36,6 +37,8 @@ def record(repo,data,results,commit,label,description,registry,markdown,safety=N
     for previous in entries:
         for sid in SCENARIOS:
             assert previous['scenarios'][sid]['input_sha256']==entry['scenarios'][sid]['input_sha256'],'Input dataset changed: '+sid
+            if 'labels_sha256' in previous['scenarios'][sid]:
+                assert previous['scenarios'][sid]['labels_sha256']==entry['scenarios'][sid]['labels_sha256'],'Labels changed: '+sid
     old=next((i for i,e in enumerate(entries) if e['code_commit']==commit),None)
     if old is None:entries.append(entry)
     else:entries[old]=entry
@@ -52,6 +55,11 @@ def record(repo,data,results,commit,label,description,registry,markdown,safety=N
     for e in entries:
         lines+=['','## '+e['label']+' — '+e['code_commit'][:7],'',e['description'],'',
                 'Пакеты: '+str(sum(e['scenarios'][s]['packets'] for s in SCENARIOS))+'. Guard-ошибки: '+str(sum(e['scenarios'][s]['guard_failures'] for s in SCENARIOS))+'.']
+    attempts=repo/'docs/experiment_attempts.json'
+    if attempts.exists():
+        lines+=['','## Незавершённые эксперименты','']
+        for attempt in json.loads(attempts.read_text(encoding='utf-8')):
+            lines.append('- '+attempt['code_commit']+' ('+attempt['status']+'): '+attempt['description'])
     lines+=['','Полные confusion, TP/FP/FN кодов, MSE уверенности, время и хеши входов/отчётов: [experiments.json](docs/experiments.json). Время локального Python под конкуренцией CPU не заменяет контроль Docker. Движение вне истинного ODD — диагностическая метрика, не число аварий.','']
     markdown.write_text('\n'.join(lines),encoding='utf-8')
     print(commit,label)

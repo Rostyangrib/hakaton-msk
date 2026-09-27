@@ -1,0 +1,7 @@
+[
+  {
+    "code_commit": "528f1df",
+    "status": "interrupted",
+    "description": "TRAIN-001 завершён, остальные сценарии не завершены. Найден скоростной контрпример PARTIAL_BLOCK + load=CONGESTED + queue<100; пилот остановлен перед исправлением. Файлы сохранены в results/train-refined-pilot-528. Полные метрики не зарегистрированы."
+  }
+]
