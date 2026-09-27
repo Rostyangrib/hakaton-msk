@@ -7,9 +7,11 @@ import sys
 import time
 from collections import Counter
 from pathlib import Path
+from concurrent.futures import ProcessPoolExecutor
 
 
 def replay(repo, reference, packets, out, sid, expectations=None):
+    sys.path.insert(0,str(repo))
     # Imported after selecting the checkout; no labels or expectations enter Controller.
     from corridor.reference import Reference
     from corridor.controller import Controller
@@ -54,15 +56,34 @@ if __name__=='__main__':
     parser.add_argument('--data',type=Path)
     parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--scenario',action='append')
+    parser.add_argument('--workers',type=int,default=1,help='Independent scenarios only; timings include host contention.')
+    parser.add_argument('--resume',action='store_true',help='Skip complete cases with the same input and runtime hashes.')
     args=parser.parse_args()
     repo=args.repo.resolve();sys.path.insert(0,str(repo))
     if args.synthetic:
         root=args.synthetic.resolve(); manifest=json.loads((root/'manifest.json').read_text(encoding='utf-8'))
+        jobs=[]
+        hashes={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((repo/'corridor').glob('*.py'))}
         for case in manifest['cases']:
             if args.scenario and case['scenario_id'] not in args.scenario: continue
             packets=root/case['folder']/'packets.ndjson.gz'
             assert hashlib.sha256(packets.read_bytes()).hexdigest()==case['sha256']
-            replay(repo,root/case['reference'],packets,args.out,case['scenario_id'],case)
+            summary=args.out/(case['scenario_id']+'.json')
+            if args.resume and summary.exists():
+                saved=json.loads(summary.read_text(encoding='utf-8'))
+                reference=root/case['reference']
+                reference_hashes={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(reference.iterdir()) if p.is_file()}
+                if saved['input_sha256']==case['sha256'] and saved['runtime_sha256']==hashes and saved['reference_sha256']==reference_hashes and (args.out/(case['scenario_id']+'.ndjson.gz')).exists():
+                    print(json.dumps(dict(resumed=case['scenario_id'])),flush=True)
+                    continue
+                raise ValueError('Resume version mismatch: '+case['scenario_id'])
+            jobs.append((repo,root/case['reference'],packets,args.out,case['scenario_id'],case))
+        if args.workers==1:
+            for job in jobs: replay(*job)
+        else:
+            with ProcessPoolExecutor(max_workers=args.workers) as pool:
+                futures=[pool.submit(replay,*job) for job in jobs]
+                for future in futures: future.result()
     else:
         for sid in args.scenario or ['PUBLIC-101','PUBLIC-102']:
             replay(repo,args.data/'01_reference',args.data/'03_public'/sid/'packets.ndjson.gz',args.out,sid)
