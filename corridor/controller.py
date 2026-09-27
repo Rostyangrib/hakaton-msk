@@ -5,6 +5,7 @@ from .trust import Trust
 from .fusion import Fusion
 from . import odd
 from .routing import Router
+from . import resources
 
 
 class Controller:
@@ -24,6 +25,7 @@ class Controller:
         decision['vehicle_assessments'] = odd.assessments(self.state,self.fusion,decision)
         self.router = Router(self.state,self.fusion)
         self.router.apply(decision)
+        resources.apply(self.state,self.fusion,self.router,decision)
         self.contract.validate(decision)
         self.state.remember(decision)
         return decision
