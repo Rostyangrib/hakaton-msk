@@ -2,6 +2,7 @@ from .contract import Contract, skeleton
 from .state import State
 from . import basic
 from .trust import Trust
+from .fusion import Fusion
 
 
 class Controller:
@@ -15,7 +16,8 @@ class Controller:
         self.state.ingest(packet)
         decision = skeleton(packet, self.ref)
         decision['source_assessments'] = self.trust.assess(self.state)
-        decision['state_estimates'] = basic.roads(self.state)
+        self.fusion = Fusion(self.state, decision['source_assessments'], self.trust.excluded)
+        decision['state_estimates'] = self.fusion.road_estimates()
         basic.policy(self.state, decision)
         self.contract.validate(decision)
         self.state.remember(decision)
