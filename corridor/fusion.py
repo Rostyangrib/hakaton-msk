@@ -80,8 +80,8 @@ class Fusion:
                 same_queue_sources=sum(p.get('queue_estimate_m',0)>=100 and self.weight(p,'queue')>=.2 for p,_,_ in observations.values())
                 persistent_queue=q>=100 and qw>=.2 and (len(queue_history)>=3 or same_queue_sources>=2)
                 if direct or persistent_queue: load_weights[e['source_id']]=max(sw if direct else 0,qw if persistent_queue else 0)
-            direct_partial=any(w>0 and e['event_type']=='ROAD_OBSERVATION' and v=='PARTIAL_BLOCK' for e,w,v in observations.values())
-            if availability in ('OPEN','PARTIAL_BLOCK') and load_weights and not direct_partial:
+            # Confirmed lane restriction precedes traffic load regardless of source type.
+            if availability == 'OPEN' and load_weights:
                 chosen='CONGESTED';agreement=1
             weights = [w for _,w,_ in observations.values()]
             conf = confidence(agreement,list(load_weights.values()) if chosen=='CONGESTED' else weights) if chosen != 'UNKNOWN' else 0.35
@@ -135,8 +135,25 @@ class Fusion:
         result['ranges']={}
         agreements = []
         for field in ('visibility_m','rain_level','wind_mps'):
+            spatial_support=1
             feature={'visibility_m':'visibility','rain_level':'rain','wind_mps':'wind'}[field]
             applicable=[(e,self.weight(e,feature)) for e,w in events if self.weight(e,feature)>0]
+            if field=='rain_level':
+                # Overlapping coverage is not proof that distinct station locations
+                # have identical precipitation. Resolve only a dominant local station;
+                # otherwise retain the conflicting range as UNKNOWN in the ODD check.
+                spatial=[]
+                for e,w in applicable:
+                    station=self.state.ref.weather[e['station_id']]
+                    distance=math.dist(position,(float(station['x_m']),float(station['y_m'])))
+                    proximity=max(0,1-distance/float(station['coverage_radius_m']))**2
+                    spatial.append((e,w*proximity))
+                total=sum(w for e,w in spatial)
+                if total:
+                    dominant,weight=max(spatial,key=lambda pair:(pair[1],pair[0]['source_id']))
+                    if weight/total>=2/3:
+                        applicable=[(e,w) for e,w in applicable if e[field]==dominant[field]]
+                        spatial_support=sum(w for e,w in spatial if e[field]==dominant[field])/total
             value = weighted_median([(e[field],w) for e,w in applicable])
             if value is None:
                 self.weather_cache[position]=None
@@ -145,7 +162,7 @@ class Fusion:
             tolerance = max(10,0.1*value) if field == 'visibility_m' else 0 if field == 'rain_level' else 2
             agreement = sum(w for e,w in applicable if abs(e[field]-value) <= tolerance)/sum(w for _,w in applicable)
             result[field] = value
-            agreements.append(agreement)
+            agreements.append(agreement*spatial_support)
         surfaces = defaultdict(float)
         for e,w in events: surfaces[e['road_surface']] += w
         result['road_surface'] = min(surfaces,key=lambda k:(-surfaces[k],k))
@@ -155,3 +172,18 @@ class Fusion:
         result['risk_sources_rain']=[e['source_id'] for e,w in events if self.weight(e,'rain')>0 and e['rain_level']==result['ranges']['rain_level'][1]]
         self.weather_cache[position] = result
         return result
+
+    def visibility_evidence(self,position,threshold):
+        """Temporal weather evidence; onboard corroboration is checked by ODD."""
+        persistent=False;near=False
+        for _,event in weather_at(self.state,position):
+            if self.weight(event,'visibility')<=0: continue
+            value=event['visibility_m']
+            near=near or value<=threshold+max(10,0.1*threshold)
+            if value>=threshold: continue
+            history=self.state.history.get(('WEATHER_OBSERVATION',event['station_id'],event['source_id']),())
+            recent=sorted((e for e in history if self.weight(e,'visibility')>0),key=lambda e:(timestamp(e['event_time']),e['event_id']))
+            last=recent[-3:]
+            if len({e['event_id'] for e in last})==3 and all(e['visibility_m']<threshold for e in last):
+                persistent=True
+        return persistent,near

@@ -57,6 +57,16 @@ def _check(state, fusion, vid, event=None, segment_id=None, future=False):
         if weather['wind_mps'] > profile['max_crosswind_mps']:
             unknown = True
             state.diagnostics.append('crosswind_direction_unknown:'+vid)
+        # Independent onboard degradation corroborates a persistent low-visibility
+        # report, without treating AUTO as proof of compliance or correcting sensors.
+        if not future and event.get('autonomy_state') in ('DEGRADED','REMOTE_REQUESTED') and event.get('perception_health',1)<0.9 and hasattr(fusion,'visibility_evidence'):
+            persistent,near=fusion.visibility_evidence(position,profile['min_visibility_m'])
+            if persistent and 'VISIBILITY' not in codes:
+                codes.append('VISIBILITY')
+                state.diagnostics.append('visibility_corroborated:'+vid)
+            elif near and 'VISIBILITY' not in codes:
+                unknown=True
+                state.diagnostics.append('visibility_margin_uncertain:'+vid)
     memory=getattr(fusion,'memory',None)
     if memory and not future and 'position' in locals() and memory.weather_uncertain(state,vid,position,weather):
         unknown=True

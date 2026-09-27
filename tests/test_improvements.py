@@ -97,6 +97,69 @@ class ImprovementTests(unittest.TestCase):
         self.state.now=101
         self.assertFalse(memory.weather_uncertain(self.state,'AV-001',(100,0),good))
 
+    def test_confirmed_rsu_twin_partial_is_not_overwritten_by_queue(self):
+        sid='S005'
+        a=event('rsu',lane_status='PARTIAL_BLOCK',queue_estimate_m=200)
+        a.update(event_type='V2X_MESSAGE',source_id='RSU-01')
+        b=event('twin',closure_state='PARTIAL_BLOCK',queue_estimate_m=200)
+        b.update(event_type='DIGITAL_TWIN_SEGMENT',source_id='DT-CORE')
+        self.state.ingest(packet([a,b]))
+        fusion=Fusion(self.state,[dict(source_id=s,trust_score=.8) for s in ['RSU-01','DT-CORE']],set())
+        fusion.road_estimates()
+        self.assertEqual(fusion.roads[sid]['state'],'PARTIAL_BLOCK')
+        self.assertEqual(fusion.roads[sid]['load'],'CONGESTED')
+
+    def weather_reading(self,source,eid,stamp,visibility=1000,rain=0):
+        return dict(event_id=eid,scenario_id='test',event_type='WEATHER_OBSERVATION',source_id=source,station_id=source,
+                    event_time=stamp,received_time=stamp,delivery_no=1,visibility_m=visibility,rain_level=rain,wind_mps=1,road_surface='DRY')
+
+    def test_local_rain_requires_spatial_dominance(self):
+        stamp='2026-09-28T00:00:10Z'
+        a=self.weather_reading('WX-01','a',stamp,rain=0)
+        b=self.weather_reading('WX-02','b',stamp,rain=3)
+        self.state.ingest(packet([a,b]))
+        fusion=Fusion(self.state,[dict(source_id=s,trust_score=.8) for s in ['WX-01','WX-02']],set())
+        self.assertEqual(fusion.weather((20000,0))['ranges']['rain_level'],(0,0))
+        self.assertEqual(fusion.weather((25000,0))['ranges']['rain_level'],(0,3))
+        self.assertEqual(fusion.weather((30000,0))['ranges']['rain_level'],(3,3))
+
+    def test_visibility_corroboration_needs_new_persistent_measurements(self):
+        scores=[dict(source_id=s,trust_score=.8) for s in ['WX-01','WX-02']]
+        e=dict(event_id='vehicle',segment_id='S001',offset_m=float(self.state.ref.segments['S001']['length_m']),gnss_quality=1,map_age_min=0,
+               autonomy_state='DEGRADED',perception_health=.8)
+        memory=SafetyMemory()
+        for i,seconds in enumerate([10,20,30]):
+            stamp=f'2026-09-28T00:00:{seconds:02d}Z'
+            a=self.weather_reading('WX-01','low'+str(i),stamp,visibility=50)
+            b=self.weather_reading('WX-02','high'+str(i),stamp)
+            self.state.ingest(dict(packet([a,b]),decision_time=stamp))
+            e['event_time']=stamp
+            fusion=Fusion(self.state,scores,set(),memory=memory)
+            result=check(self.state,fusion,'AV-001',e)
+            self.assertEqual(result['odd_status'],'VIOLATED' if i==2 else 'UNKNOWN')
+        # AUTO is not proof of compliance; a contradictory weather range stays UNKNOWN.
+        e['autonomy_state']='AUTO'
+        fusion=Fusion(self.state,scores,set())
+        self.assertEqual(check(self.state,fusion,'AV-001',e)['odd_status'],'UNKNOWN')
+
+    def test_duplicate_weather_does_not_confirm_visibility(self):
+        stamp='2026-09-28T00:00:10Z'
+        a=self.weather_reading('WX-01','same',stamp,visibility=50)
+        self.state.ingest(packet([a,a,a]))
+        fusion=Fusion(self.state,[dict(source_id='WX-01',trust_score=.8)],set())
+        self.assertEqual(fusion.visibility_evidence((10000,0),70),(False,True))
+
+    def test_visibility_margin_is_unknown_without_fabricating_violation(self):
+        stamp='2026-09-28T00:00:10Z'
+        a=self.weather_reading('WX-01','a',stamp,visibility=75)
+        self.state.ingest(packet([a]))
+        fusion=Fusion(self.state,[dict(source_id='WX-01',trust_score=.8)],set())
+        e=dict(event_id='v',segment_id='S001',offset_m=0,event_time=stamp,gnss_quality=1,map_age_min=0,
+               autonomy_state='DEGRADED',perception_health=.8)
+        result=check(self.state,fusion,'AV-001',e)
+        self.assertEqual(result['odd_status'],'UNKNOWN')
+        self.assertNotIn('VISIBILITY',result['violation_codes'])
+
     def test_duplicate_clearance_does_not_release_warning(self):
         memory=SafetyMemory();self.state.now=10
         bad=dict(visibility_m=60,rain_level=0,event_ids=['bad'],sources=['s'],risk_sources_visibility=['s'])
