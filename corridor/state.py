@@ -24,6 +24,7 @@ class State:
         self.now = 0
         self.diagnostics = []
         self.inactivity = defaultdict(int)
+        self._event_cache = {}
 
     def key(self, event):
         kind = event['event_type']
@@ -44,6 +45,7 @@ class State:
         return kind, entity, event['source_id']
 
     def ingest(self, packet):
+        self._event_cache = {}
         if self.scenario_id != packet['scenario_id'] or self.final:
             self.reset(packet['scenario_id'])
         now = timestamp(packet['decision_time'])
@@ -95,8 +97,11 @@ class State:
         self.final = packet['is_final']
 
     def events(self, kind=None, entity=None):
-        return [event for (k, e, _), event in sorted(self.current.items())
-                if (kind is None or kind == k) and (entity is None or entity == e)]
+        key = kind,entity
+        if key not in self._event_cache:
+            self._event_cache[key] = [event for (k, e, _), event in sorted(self.current.items())
+                                     if (kind is None or kind == k) and (entity is None or entity == e)]
+        return self._event_cache[key]
 
     def fresh(self, event, seconds):
         return 0 <= self.now - timestamp(event['event_time']) <= seconds

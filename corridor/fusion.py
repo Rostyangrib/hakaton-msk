@@ -24,6 +24,7 @@ class Fusion:
         self.sources = {r['source_id']:r for r in assessments}
         self.excluded = excluded
         self.roads = {}
+        self.weather_cache = {}
 
     def weight(self, event):
         sid = event['source_id']
@@ -73,9 +74,12 @@ class Fusion:
         return result
 
     def weather(self, position):
+        if position in self.weather_cache: return self.weather_cache[position]
         events = [(e,self.weight(e)) for _,e in weather_at(self.state,position)]
         events = [(e,w) for e,w in events if w > 0]
-        if not events: return None
+        if not events:
+            self.weather_cache[position] = None
+            return None
         result = {}
         agreements = []
         for field in ('visibility_m','rain_level','wind_mps'):
@@ -89,4 +93,5 @@ class Fusion:
         result['road_surface'] = min(surfaces,key=lambda k:(-surfaces[k],k))
         result['confidence'] = confidence(min(agreements),[w for _,w in events])
         result['agreement'] = min(agreements)
+        self.weather_cache[position] = result
         return result

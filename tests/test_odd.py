@@ -43,6 +43,7 @@ class OddTests(unittest.TestCase):
             event['map_age_min'] += 0.001
             self.assertIn('MAP_AGE',check(self.state,WeatherFusion(weather),vid,event)['violation_codes'])
         self.state.current.clear()
+        self.state._event_cache.clear()
         vid=next(v for v,r in self.state.ref.vehicles.items() if r['odd_profile_id']=='ODD-D')
         fusion=WeatherFusion(dict(self.weather,visibility_m=100,rain_level=0,wind_mps=0))
         fusion.sources={r:dict(status='FAILED') for r in self.state.ref.rsus}

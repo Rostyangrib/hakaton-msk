@@ -4,6 +4,7 @@ from . import basic
 from .trust import Trust
 from .fusion import Fusion
 from . import odd
+from .routing import Router
 
 
 class Controller:
@@ -21,6 +22,8 @@ class Controller:
         decision['state_estimates'] = self.fusion.road_estimates()
         basic.policy(self.state, decision)
         decision['vehicle_assessments'] = odd.assessments(self.state,self.fusion,decision)
+        self.router = Router(self.state,self.fusion)
+        self.router.apply(decision)
         self.contract.validate(decision)
         self.state.remember(decision)
         return decision
