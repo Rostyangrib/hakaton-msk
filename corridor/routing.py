@@ -2,6 +2,7 @@ import heapq
 import math
 from .basic import telemetry
 from .odd import check
+from .limits import segment_speed_limit
 
 
 def dijkstra(segments,outgoing,start,target,costs):
@@ -36,8 +37,8 @@ class Router:
         self.paths = {}
         self.cost_cache = {}
 
-    def costs(self,vid,dynamic=False):
-        key=vid,dynamic
+    def costs(self,vid,dynamic=False,confirmed=False):
+        key=vid,dynamic,confirmed
         if key in self.cost_cache: return self.cost_cache[key]
         result = {}
         vehicle = self.state.ref.vehicles[vid]
@@ -49,9 +50,13 @@ class Router:
             if dynamic:
                 estimate = self.fusion.roads[sid]
                 if estimate['state'] in ('CLOSED','UNKNOWN'): continue
-                if event is None or check(self.state,self.fusion,vid,event,sid,True)['odd_status'] == 'VIOLATED': continue
+                odd=check(self.state,self.fusion,vid,event,sid,True)['odd_status'] if event else 'UNKNOWN'
+                if event is None or odd == 'VIOLATED' or (confirmed and odd!='COMPLIANT'): continue
                 lanes = estimate['lanes'] if estimate['lanes'] is not None else int(segment['lanes'])
                 speed = min(speed,estimate['speed']) if estimate['speed'] is not None else speed*lanes/int(segment['lanes'])
+                limit=segment_speed_limit(self.state,self.fusion,vid,event,sid,True)
+                if limit is None: continue
+                speed=min(speed,limit)
                 if speed <= 0: speed = 1  # Positive time, never a division by zero.
                 factor = 1+(1-estimate['confidence'])
             result[sid] = float(segment['length_m'])/(speed/3.6)*factor

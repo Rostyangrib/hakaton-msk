@@ -2,6 +2,8 @@ from collections import Counter
 import math
 from .basic import telemetry
 from .routing import dijkstra
+from .limits import segment_speed_limit, current_fragment_allowed
+from .odd import check
 
 
 def min_cost_assignment(candidates, capacities):
@@ -43,9 +45,9 @@ def min_cost_assignment(candidates, capacities):
 
 
 def support_selection(requests, limit, previous=()):
-    """group, cargo priority, incumbent on equal terms, then vehicle id."""
+    """Risk group, cargo, time to hazard, incumbent on equal terms, id."""
     previous=set(previous)
-    return set(sorted(requests,key=lambda v:(requests[v][0],requests[v][1],v not in previous,v))[:limit])
+    return set(sorted(requests,key=lambda v:(requests[v][0],requests[v][1],requests[v][2] if len(requests[v])>2 else math.inf,v not in previous,v))[:limit])
 
 
 def waiting_zone(state,vid,event):
@@ -58,24 +60,24 @@ def waiting_zone(state,vid,event):
 
 
 def speed_limit(state,fusion,vid,event,route=None):
-    segment=state.ref.segments[event['segment_id']]
-    limits=[float(segment['speed_limit_kmh']),float(state.ref.vehicles[vid]['nominal_max_speed_kmh'])]
-    estimate=fusion.roads[event['segment_id']]
-    if estimate['state']=='PARTIAL_BLOCK': limits.append(40)
-    if estimate['state']=='CONGESTED' or (estimate['queue'] or 0)>=100: limits.append(30)
-    if route:
+    limit=segment_speed_limit(state,fusion,vid,event)
+    if limit is not None and route:
         first=fusion.roads[route[0]]
-        if first['state']=='CONGESTED' or (first['queue'] or 0)>=100: limits.append(30)
-    weather=fusion.weather(state.ref.position(event['segment_id'],event['offset_m']))
-    if weather:
-        if weather['road_surface']=='FLOODED': return None
-        if weather['road_surface']=='WET': limits.append(60)
-        if weather['road_surface']=='WATER_FILM': limits.append(40)
-        minimum=state.ref.profiles[state.ref.vehicles[vid]['odd_profile_id']]['min_visibility_m']
-        if minimum <= weather['visibility_m'] <= 1.25*minimum: limits.append(30)
-    for e in state.events('V2X_MESSAGE',event['segment_id']):
-        if fusion.weight(e)>0 and fusion.sources[e['source_id']]['trust_score']>=0.4 and e['advisory_speed_kmh']>0: limits.append(e['advisory_speed_kmh'])
-    return min(limits)
+        if first['state']=='CONGESTED' or (first['queue'] or 0)>=100: limit=min(limit,30)
+    return limit
+
+
+def hazard_eta(state,fusion,router,vid,event,current_danger=False):
+    if current_danger: return 0.0
+    if not event or not state.fresh(event,15): return 0.0
+    path=router.paths.get(vid,{}).get('static')
+    if not path: return math.inf
+    first=path[0]
+    risk=fusion.roads[first]['state'] in ('CLOSED','UNKNOWN') or check(state,fusion,vid,event,first,True)['odd_status']!='COMPLIANT'
+    if not risk: return math.inf
+    remaining=max(0,float(state.ref.segments[event['segment_id']]['length_m'])-event['offset_m'])
+    speed=max(1,float(event.get('speed_kmh',0)))
+    return remaining/(speed/3.6)
 
 
 def apply(state,fusion,router,decision):
@@ -94,13 +96,13 @@ def apply(state,fusion,router,decision):
             danger=danger or bool(weather and weather['road_surface']=='FLOODED')
         requires = danger or estimate['odd_status']!='COMPLIANT' or action['motion_action']=='HOLD' or bool(event and event.get('autonomy_state')=='REMOTE_REQUESTED')
         if requires:
-            requests[vid]=(0 if danger else 1 if estimate['odd_status']=='VIOLATED' else 2,int(state.ref.vehicles[vid]['cargo_priority']))
+            requests[vid]=(0 if danger else 1 if estimate['odd_status']=='VIOLATED' else 2,int(state.ref.vehicles[vid]['cargo_priority']),hazard_eta(state,fusion,router,vid,event,danger or estimate['odd_status']!='COMPLIANT'))
         unsafe=danger or estimate['odd_status']=='VIOLATED' or action['motion_action']=='HOLD'
         if unsafe:
             action.pop('route_segment_ids',None)
             action.update(motion_action='HOLD',rationale_codes=['ODD_'+c for c in estimate['violation_codes']] or ['LOW_CONFIDENCE'])
-            if not waiting_zone(state,vid,event) and event and state.fresh(event,15):
-                costs=router.costs(vid,True)
+            if not waiting_zone(state,vid,event) and current_fragment_allowed(state,fusion,vid,event):
+                costs=router.costs(vid,True,confirmed=True)
                 options={}
                 for ss,stop in state.ref.stops.items():
                     sid=stop['segment_id']
@@ -109,9 +111,13 @@ def apply(state,fusion,router,decision):
                         options[ss]=costs[sid]*(1-event['offset_m']/float(state.ref.segments[sid]['length_m']))
                     else:
                         path,cost=dijkstra(state.ref.segments,state.ref.outgoing,state.ref.segments[event['segment_id']]['to_node'],state.ref.segments[sid]['from_node'],costs)
-                        if path is not None: options[ss]=cost+costs[sid]
+                        if path is not None: options[ss]=cost+costs[sid]+segment_speed_limit(state,fusion,vid,event)**-1*3.6*max(0,float(state.ref.segments[event['segment_id']]['length_m'])-event['offset_m'])
                 candidates[vid]=options
-            if not waiting_zone(state,vid,event): state.diagnostics.append('no_confirmed_waiting_zone:'+vid)
+            if not waiting_zone(state,vid,event):
+                state.diagnostics.append('no_confirmed_waiting_zone:'+vid)
+                if vid not in candidates:
+                    candidates[vid]={}
+                    state.diagnostics.append('unsafe_current_stop_approach:'+vid)
         elif event:
             # A REROUTE cannot also carry LIMIT_SPEED in this single-action protocol.
             # Preserve the agreed route rule; speed constraints still affect route cost.

@@ -3,6 +3,7 @@ from .basic import telemetry
 from .contract import skeleton
 from .resources import support_selection
 from .odd import check
+from .limits import current_fragment_allowed,segment_speed_limit
 
 
 def errors(state,fusion,decision):
@@ -44,7 +45,10 @@ def errors(state,fusion,decision):
                 if float(ref.vehicles[vid]['gross_mass_t'])>float(stop['max_vehicle_mass_t']) or not ref.compatible(vid,sid): reasons.append('stop_mass_or_structure')
                 if estimates[sid]['state'] in ('CLOSED','UNKNOWN'): reasons.append('unavailable_stop')
                 if event is None: reasons.append('stop_missing_position')
-                elif sid != event['segment_id']:
+                elif fusion and not current_fragment_allowed(state,fusion,vid,event): reasons.append('unsafe_current_stop_approach')
+                if event and fusion and (check(state,fusion,vid,event,sid,True)['odd_status']!='COMPLIANT' or segment_speed_limit(state,fusion,vid,event,sid,True) is None):
+                    reasons.append('unconfirmed_stop_conditions')
+                if event and sid != event['segment_id']:
                     start=ref.segments[event['segment_id']]['to_node']; target=ref.segments[sid]['from_node']
                     visited={start}; stack=[start]
                     while stack:
@@ -52,7 +56,7 @@ def errors(state,fusion,decision):
                         for edge in ref.outgoing.get(node,[]):
                             end=ref.segments[edge]['to_node']
                             if end not in visited and ref.compatible(vid,edge) and estimates[edge]['state'] not in ('CLOSED','UNKNOWN'):
-                                if fusion and check(state,fusion,vid,event,edge,True)['odd_status']=='VIOLATED': continue
+                                if fusion and (check(state,fusion,vid,event,edge,True)['odd_status']!='COMPLIANT' or segment_speed_limit(state,fusion,vid,event,edge,True) is None): continue
                                 visited.add(end); stack.append(end)
                     if target not in visited: reasons.append('unreachable_stop')
         for code in a['rationale_codes']:

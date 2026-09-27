@@ -14,10 +14,10 @@ from corridor.reference import Reference
 from evaluate import quantiles
 
 
-def run(data,sid,out,limit=None):
+def run(data,sid,out,limit=None,image='corridor-solution:final'):
     directory=data/('02_train' if sid.startswith('TRAIN') else '03_public')/sid
     command=['docker','run','--rm','-i','--platform','linux/amd64','--network','none','--cpus','8','--memory','16g',
-             '--read-only','--cap-drop','ALL','--security-opt','no-new-privileges','--pids-limit','256','corridor-solution:final']
+             '--read-only','--cap-drop','ALL','--security-opt','no-new-privileges','--pids-limit','256',image]
     out.mkdir(parents=True,exist_ok=True)
     validator=Contract(Reference(data/'01_reference'))
     start=time.perf_counter()
@@ -53,7 +53,7 @@ def run(data,sid,out,limit=None):
     assert outputs.get(timeout=5) is None, 'Extra stdout'
     elapsed=[r['elapsed_ms'] for r in logs if 'elapsed_ms' in r]
     assert len(elapsed)==count
-    report=dict(scenario=sid,packets=count,exit_code=code,first_response_sec=first_response,
+    report=dict(scenario=sid,image=image,packets=count,exit_code=code,first_response_sec=first_response,
                 roundtrip_ms=quantiles(times),processing_ms=quantiles(elapsed),
                 processing_over_2000_ms=sum(t>2000 for t in elapsed),roundtrip_over_2000_ms=sum(t>2000 for t in times),
                 complete_schema_valid=count,network='none',cpu_limit=8,memory_limit='16g',gpu=False,read_only=True)
@@ -63,5 +63,5 @@ def run(data,sid,out,limit=None):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(); parser.add_argument('--data',type=Path,required=True); parser.add_argument('--out',type=Path,required=True)
-    parser.add_argument('--scenario',required=True); parser.add_argument('--limit',type=int); args=parser.parse_args()
-    run(args.data,args.scenario,args.out,args.limit)
+    parser.add_argument('--image',default='corridor-solution:final'); parser.add_argument('--scenario',required=True); parser.add_argument('--limit',type=int); args=parser.parse_args()
+    run(args.data,args.scenario,args.out,args.limit,args.image)

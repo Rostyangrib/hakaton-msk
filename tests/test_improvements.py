@@ -1,11 +1,16 @@
 import os
 import unittest
+from unittest.mock import patch
+from types import SimpleNamespace
 from corridor.reference import Reference
 from corridor.state import State
 from corridor.trust import Trust
 from corridor.fusion import Fusion
 from corridor.memory import SafetyMemory
 from corridor.odd import check
+from corridor.routing import Router
+from corridor.resources import support_selection
+from corridor.limits import current_fragment_allowed
 from test_odd import WeatherFusion
 from test_state import event,packet
 
@@ -88,3 +93,40 @@ class ImprovementTests(unittest.TestCase):
         self.assertIn('MAP_AGE',check(self.state,fusion,'AV-001',e)['violation_codes'])
         self.state.now=0
         self.assertNotIn('MAP_AGE',check(self.state,fusion,'AV-001',e)['violation_codes'])
+
+    def test_dynamic_time_uses_weather_and_queue_caps(self):
+        e=dict(segment_id='S001',offset_m=0,event_time='1970-01-01T00:00:00Z')
+        fusion=WeatherFusion(dict(visibility_m=1000,rain_level=0,wind_mps=0,road_surface='WATER_FILM',confidence=.8))
+        fusion.roads={s:dict(state='OPEN',confidence=1,lanes=int(r['lanes']),speed=None,queue=0) for s,r in self.state.ref.segments.items()}
+        router=Router(self.state,fusion)
+        with patch('corridor.routing.telemetry',return_value=e),patch('corridor.routing.check',return_value={'odd_status':'COMPLIANT'}):
+            costs=router.costs('AV-001',True)
+        length=float(self.state.ref.segments['S001']['length_m'])
+        self.assertGreaterEqual(costs['S001'],length/(40/3.6))
+        fusion.roads['S001']['queue']=200
+        router=Router(self.state,fusion)
+        with patch('corridor.routing.telemetry',return_value=e),patch('corridor.routing.check',return_value={'odd_status':'COMPLIANT'}):
+            self.assertAlmostEqual(router.costs('AV-001',True)['S001'],length/(30/3.6))
+
+    def test_stop_approach_needs_confirmed_future_odd(self):
+        e=dict(segment_id='S001',offset_m=0,event_time='1970-01-01T00:00:00Z')
+        fusion=WeatherFusion(None)
+        fusion.roads={s:dict(state='OPEN',confidence=1,lanes=int(r['lanes']),speed=None,queue=0) for s,r in self.state.ref.segments.items()}
+        with patch('corridor.routing.telemetry',return_value=e),patch('corridor.routing.check',return_value={'odd_status':'UNKNOWN'}):
+            router=Router(self.state,fusion)
+            self.assertIn('S001',router.costs('AV-001',True))
+            self.assertNotIn('S001',router.costs('AV-001',True,confirmed=True))
+
+    def test_current_fragment_not_ignored_for_stop_approach(self):
+        e=dict(segment_id='S001',offset_m=0,event_time='1970-01-01T00:00:00Z')
+        fusion=WeatherFusion(None);fusion.roads={'S001':dict(state='CLOSED')}
+        self.assertFalse(current_fragment_allowed(self.state,fusion,'AV-001',e))
+        fusion.roads['S001']['state']='OPEN'
+        with patch('corridor.odd.check',return_value={'odd_status':'VIOLATED'}):
+            self.assertFalse(current_fragment_allowed(self.state,fusion,'AV-001',e))
+
+    def test_support_eta_does_not_override_risk_or_cargo(self):
+        self.assertEqual(support_selection({'a':(2,1,1),'b':(1,1,100)},1),{'b'})
+        self.assertEqual(support_selection({'a':(1,1,100),'b':(1,2,1)},1),{'a'})
+        self.assertEqual(support_selection({'a':(1,1,100),'b':(1,1,1)},1,['a']),{'b'})
+        self.assertEqual(support_selection({'a':(1,1,1),'b':(1,1,1)},1,['b']),{'b'})

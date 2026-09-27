@@ -141,7 +141,7 @@ def evaluate(data,sid,out,details=False):
                 diagnostic_examples=diagnostic_examples,
                 labelled_odd_unsafe_steps=critical_steps,labelled_odd_critical_episodes=critical_episodes,
                 assumptions=['Source status proxy: OUTAGE=FAILED, other labelled fault=DEGRADED, no fault=OK; half-open fault intervals.',
-                             'No official action utility or unjustified-switch score. Manual rules reviewed on TRAIN-001/002/003; TRAIN-004 held out from tuning.'])
+                             'No official action utility or unjustified-switch score. All four TRAIN scenarios informed error analysis and manual rule changes; this comparison is not an independent held-out estimate.'])
     if detail_stream is not None: detail_stream.close()
     report['runtime_sha256']={str(p.relative_to(Path(__file__).resolve().parent.parent)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest()
                               for group in ('corridor','contract','reference') for p in sorted((Path(__file__).resolve().parent.parent/group).rglob('*'))

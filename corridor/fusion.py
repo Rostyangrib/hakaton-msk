@@ -47,7 +47,8 @@ class Fusion:
                 for event in self.state.events(kind,sid):
                     weight = self.weight(event)
                     vote = availability_vote(event,segment)
-                    if weight: observations[event['source_id']] = (event,weight,vote)
+                    if max(weight,self.weight(event,'speed'),self.weight(event,'queue'))>0:
+                        observations[event['source_id']] = (event,weight,vote)
             scores = defaultdict(float)
             for _,w,v in observations.values():
                 if v: scores[v] += w
@@ -73,13 +74,13 @@ class Fusion:
                 q=e.get('queue_estimate_m',0)
                 sw=self.weight(e,'speed');qw=self.weight(e,'queue')
                 direct=bool(speed is not None and sw>0 and speed<float(segment['speed_limit_kmh'])/2
-                            and (e.get('occupancy_pct',0)>=70 or q>=100))
+                            and (e.get('occupancy_pct',0)>=70 or (q>=100 and qw>0)))
                 history=self.state.history.get((e['event_type'],sid,e['source_id']),())
                 queue_history={p['event_id'] for p in history if self.state.fresh(p,60) and p.get('queue_estimate_m',0)>=100}
                 same_queue_sources=sum(p.get('queue_estimate_m',0)>=100 and self.weight(p,'queue')>=.2 for p,_,_ in observations.values())
                 persistent_queue=q>=100 and qw>=.2 and (len(queue_history)>=3 or same_queue_sources>=2)
                 if direct or persistent_queue: load_weights[e['source_id']]=max(sw if direct else 0,qw if persistent_queue else 0)
-            direct_partial=any(e['event_type']=='ROAD_OBSERVATION' and v=='PARTIAL_BLOCK' for e,w,v in observations.values())
+            direct_partial=any(w>0 and e['event_type']=='ROAD_OBSERVATION' and v=='PARTIAL_BLOCK' for e,w,v in observations.values())
             if availability in ('OPEN','PARTIAL_BLOCK') and load_weights and not direct_partial:
                 chosen='CONGESTED';agreement=1
             weights = [w for _,w,_ in observations.values()]
