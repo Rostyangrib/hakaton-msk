@@ -1,6 +1,7 @@
 """Offline labels-based analysis. Never imported by the runtime."""
 import argparse
 import csv
+import hashlib
 import gzip
 import json
 import math
@@ -38,7 +39,7 @@ def quantiles(values):
     return {name:ordered[min(len(ordered)-1,math.ceil(len(ordered)*fraction)-1)] for name,fraction in [('p50',.5),('p95',.95),('p99',.99),('max',1)]}
 
 
-def evaluate(data,sid,out):
+def evaluate(data,sid,out,details=False):
     ref=Reference(data/'01_reference'); controller=Controller(ref); baseline=State(ref)
     directory=data/'02_train'/sid
     road_truth={(r['timestamp'],r['segment_id']):r for r in csv_rows(directory/'labels/01_segment_state.csv.gz')}
@@ -48,6 +49,8 @@ def evaluate(data,sid,out):
     actions=Counter(); switches=Counter(); previous={}; timing=[]; guard_failures=0; packets=0; diagnostics=Counter(); detection={}
     route_selection=Counter(); critical_streak=Counter(); critical_episodes=0; critical_steps=0
     diagnostic_examples={}; calibration=defaultdict(lambda:defaultdict(lambda:[0,0,0]))
+    out.mkdir(parents=True,exist_ok=True)
+    detail_stream=gzip.open(out/(sid+'-decisions.ndjson.gz'),'wt',encoding='utf-8') if details else None
     def record_confidence(metric,conf,correct):
         mse[metric].append((conf-int(correct))**2)
         bucket=min(9,int(conf*10)); values=calibration[metric][bucket]
@@ -56,6 +59,11 @@ def evaluate(data,sid,out):
         for line in stream:
             packet=json.loads(line); packets+=1; start=time.perf_counter()
             decision=controller.process(packet); timing.append((time.perf_counter()-start)*1000)
+            if detail_stream is not None:
+                detail_stream.write(json.dumps(dict(packet_id=packet['packet_id'],decision_time=packet['decision_time'],
+                    decision=decision,observations=controller.state.events(),
+                    fused_roads=controller.fusion.roads,weather_cache=[dict(position=pos,value=value) for pos,value in controller.fusion.weather_cache.items()],
+                    excluded_sources=sorted(controller.trust.excluded),diagnostics=controller.state.diagnostics),ensure_ascii=False)+'\n')
             for diagnostic in controller.state.diagnostics:
                 category=diagnostic.split(':')[0] if isinstance(diagnostic,str) else next(iter(diagnostic))
                 diagnostics[category]+=1
@@ -134,7 +142,13 @@ def evaluate(data,sid,out):
                 labelled_odd_unsafe_steps=critical_steps,labelled_odd_critical_episodes=critical_episodes,
                 assumptions=['Source status proxy: OUTAGE=FAILED, other labelled fault=DEGRADED, no fault=OK; half-open fault intervals.',
                              'No official action utility or unjustified-switch score. Manual rules reviewed on TRAIN-001/002/003; TRAIN-004 held out from tuning.'])
-    out.mkdir(parents=True,exist_ok=True)
+    if detail_stream is not None: detail_stream.close()
+    report['runtime_sha256']={str(p.relative_to(Path(__file__).resolve().parent.parent)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest()
+                              for group in ('corridor','contract','reference') for p in sorted((Path(__file__).resolve().parent.parent/group).rglob('*'))
+                              if p.is_file() and '__pycache__' not in p.parts}
+    report['input_sha256']=hashlib.sha256((directory/'packets.ndjson.gz').read_bytes()).hexdigest()
+    report['details_saved']=details
+    report['timing_environment']='Sequential local Python; controller.process only, excluding offline labels, detail export and baseline. Not Docker timing.'
     (out/(sid+'.json')).write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
     print(json.dumps(report,ensure_ascii=False),flush=True)
     return report
@@ -143,5 +157,6 @@ def evaluate(data,sid,out):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(); parser.add_argument('--data',type=Path,required=True)
     parser.add_argument('--scenario',action='append'); parser.add_argument('--out',type=Path,required=True)
+    parser.add_argument('--details',action='store_true',help='Save predictions and observed evidence for offline error analysis.')
     args=parser.parse_args()
-    for sid in args.scenario or ['TRAIN-001','TRAIN-002','TRAIN-003','TRAIN-004']: evaluate(args.data,sid,args.out)
+    for sid in args.scenario or ['TRAIN-001','TRAIN-002','TRAIN-003','TRAIN-004']: evaluate(args.data,sid,args.out,args.details)

@@ -1,4 +1,4 @@
-"""Turn aggregate offline checks into a reviewable analytical report."""
+"""Historical preliminary report. Use train_report.py for current-version runs."""
 import argparse
 import json
 from pathlib import Path
