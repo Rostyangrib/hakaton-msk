@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+*.log
+*.zip
+*.gz
+*.tar
+results/
+data/
+TRAIN*/
+PUBLIC*/
+.pytest_cache/
