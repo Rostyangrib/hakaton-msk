@@ -12,6 +12,7 @@ class State:
         self.reset(None)
 
     def reset(self, scenario_id):
+        self.generation = getattr(self, 'generation', 0) + 1
         self.scenario_id = scenario_id
         self.current = {}
         self.measurements = {}
