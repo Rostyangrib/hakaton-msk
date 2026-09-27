@@ -9,15 +9,22 @@ def freshness(ref, event):
     return 3 * period
 
 
-def road_vote(event, segment):
+def availability_vote(event, segment):
     explicit = event.get('closure_state', event.get('lane_status'))
     lanes = event.get('lane_count_open', event.get('lane_count_open_estimate'))
     if explicit == 'CLOSED' or lanes == 0: return 'CLOSED'
     if explicit == 'PARTIAL_BLOCK' or (lanes is not None and lanes < int(segment['lanes'])): return 'PARTIAL_BLOCK'
+    if explicit == 'OPEN' or lanes == int(segment['lanes']): return 'OPEN'
+    return None
+
+
+def road_vote(event, segment):
+    availability=availability_vote(event,segment)
+    if availability in ('CLOSED','PARTIAL_BLOCK'): return availability
     speed = event.get('speed_kmh')
     if speed is not None and speed < float(segment['speed_limit_kmh']) / 2 and (event.get('occupancy_pct', 0) >= 70 or event.get('queue_estimate_m', 0) >= 100):
         return 'CONGESTED'
-    if explicit == 'OPEN' or lanes == int(segment['lanes']): return 'OPEN'
+    if availability=='OPEN': return 'OPEN'
     return None
 
 

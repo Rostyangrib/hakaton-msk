@@ -2,6 +2,7 @@ from .contract import Contract, skeleton
 from .state import State
 from . import basic
 from .trust import Trust
+from .memory import SafetyMemory
 from .fusion import Fusion
 from . import odd
 from .routing import Router
@@ -15,13 +16,15 @@ class Controller:
         self.state = State(reference)
         self.contract = Contract(reference)
         self.trust = Trust()
+        self.memory = SafetyMemory()
 
     def process(self, packet):
         self.state.ingest(packet)
         decision = skeleton(packet, self.ref)
         try:
             decision['source_assessments'] = self.trust.assess(self.state)
-            self.fusion = Fusion(self.state, decision['source_assessments'], self.trust.excluded)
+            self.fusion = Fusion(self.state, decision['source_assessments'], self.trust.excluded,
+                                 self.trust.feature_trust,self.memory)
             decision['state_estimates'] = self.fusion.road_estimates()
             basic.policy(self.state, decision)
             decision['vehicle_assessments'] = odd.assessments(self.state,self.fusion,decision)

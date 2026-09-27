@@ -2,7 +2,7 @@ import math
 from collections import defaultdict, deque
 from statistics import median
 from .state import timestamp
-from .basic import freshness, road_vote
+from .basic import freshness, availability_vote
 
 
 class Trust:
@@ -16,6 +16,9 @@ class Trust:
         self.started = None
         self.generation = None
         self.frozen = {}
+        self.feature_evidence = defaultdict(deque)
+        self.feature_signatures = {}
+        self.feature_trust = {}
 
     def assess(self, state):
         if self.generation != state.generation or self.scenario != state.scenario_id or self.started is None or state.now < self.started:
@@ -24,9 +27,16 @@ class Trust:
             self.started = state.now
             self.generation = state.generation
         output = []
+        current_by_source=defaultdict(list)
+        history_by_source=defaultdict(list)
+        history_by_road=defaultdict(list)
+        for e in state.events(): current_by_source[e['source_id']].append(e)
+        for key,values in state.history.items():
+            history_by_source[key[2]].append((key,values))
+            if key[0]=='ROAD_OBSERVATION': history_by_road[key[1]].extend(values)
         for sid, source in sorted(state.ref.sources.items()):
             period = float(source['expected_period_sec'])
-            recent = [e for e in state.events() if e['source_id'] == sid]
+            recent = current_by_source[sid]
             useful = [e for e in recent if e['event_type'] != 'INFRASTRUCTURE_HEALTH']
             health = [e for e in recent if e['event_type'] == 'INFRASTRUCTURE_HEALTH']
             faults = set()
@@ -47,14 +57,15 @@ class Trust:
                 if e.get('signature_valid') is False: faults.add('BYZANTINE')
             positive = False
             evidence_ids = set()
+            feature_positive=defaultdict(set)
             residuals = []
             if sid in self.frozen:
                 latest=max((e for e in useful if e['event_type']=='ROAD_OBSERVATION'),key=lambda e:timestamp(e['event_time']),default=None)
                 signature=tuple(latest.get(f) for f in ('speed_kmh','flow_vph','occupancy_pct','queue_estimate_m')) if latest else None
                 if signature==self.frozen[sid] and latest and state.now-timestamp(latest['received_time'])<=max(15,3*period): faults.add('FREEZE')
                 else: self.frozen.pop(sid,None)
-            for key, history in state.history.items():
-                if key[2] != sid or key[0] != 'ROAD_OBSERVATION': continue
+            for key, history in history_by_source[sid]:
+                if key[0] != 'ROAD_OBSERVATION': continue
                 relevant = [e for e in history if 0 <= state.now-timestamp(e['event_time']) <= 60]
                 signatures = [tuple(e.get(f) for f in ('speed_kmh','flow_vph','occupancy_pct','queue_estimate_m')) for e in relevant]
                 if signatures:
@@ -69,8 +80,8 @@ class Trust:
                         and relevant[0].get('sequence_no') is not None):
                     faults.add('FREEZE')
                 for e in relevant:
-                    peers = [p for other, values in state.history.items() if other[0] == key[0] and other[1] == key[1] and other[2] != sid
-                             for p in values if timestamp(p['event_time']) <= state.now and abs(timestamp(p['event_time'])-timestamp(e['event_time'])) <= period]
+                    peers = [p for p in history_by_road[key[1]] if p['source_id']!=sid
+                             and timestamp(p['event_time']) <= state.now and abs(timestamp(p['event_time'])-timestamp(e['event_time'])) <= period]
                     if not peers: continue
                     closest = {}
                     for p in peers:
@@ -82,6 +93,7 @@ class Trust:
                     if abs(residual) <= 10:
                         positive = True
                         evidence_ids.add(e['event_id'])
+                        feature_positive['speed'].add(e['event_id'])
                 if len(signatures)>=3 and len(set(signatures))==1 and sum(v is not None for v in signatures[-1])>=3 and residuals and any(abs(r)>10 for _,r in residuals): faults.add('FREEZE')
             if len(residuals) >= 3:
                 residuals.sort()
@@ -94,19 +106,30 @@ class Trust:
             for e in useful:
                 if e.get('segment_id') and state.fresh(e, freshness(state.ref,e)):
                     peers = [p for p in state.events(entity=e['segment_id']) if p['source_id'] != sid and p['event_type'] in ('ROAD_OBSERVATION','V2X_MESSAGE','DIGITAL_TWIN_SEGMENT') and state.fresh(p,freshness(state.ref,p))]
-                    own = road_vote(e,state.ref.segments[e['segment_id']])
-                    votes = [road_vote(p,state.ref.segments[e['segment_id']]) for p in peers if p.get('signature_valid',True)]
-                    if own == 'CLOSED' and votes.count('OPEN') >= 2:
+                    own = availability_vote(e,state.ref.segments[e['segment_id']])
+                    votes = {p['source_id']:availability_vote(p,state.ref.segments[e['segment_id']]) for p in peers if p.get('signature_valid',True)}
+                    if own == 'CLOSED' and list(votes.values()).count('OPEN') >= 2:
                         faults.add('FALSE_LANE_CLOSURE')
-                    elif own and own in votes:
+                    elif own and own in votes.values():
                         positive = True
                         evidence_ids.add(e['event_id'])
-            sequence_events=[e for key,h in state.history.items() if key[2] == sid for e in h
+                        feature_positive['availability'].add(e['event_id'])
+                    if 'queue_estimate_m' in e:
+                        for p in peers:
+                            if ('queue_estimate_m' in p and p.get('signature_valid',True)
+                                    and abs(timestamp(p['event_time'])-timestamp(e['event_time']))<=period
+                                    and abs(p['queue_estimate_m']-e['queue_estimate_m'])<=max(20,.2*e['queue_estimate_m'])):
+                                feature_positive['queue'].add(e['event_id'])
+            sequence_events=[e for key,h in history_by_source[sid] for e in h
                              if 'sequence_no' in e and state.watermark-60 <= timestamp(e['event_time']) <= state.watermark]
-            sequences = sorted({e['sequence_no'] for e in sequence_events})
-            repeat_counter=len(sequences)<len(sequence_events)
-            if (len(sequences)>=3 and not repeat_counter and 'DELAY' not in faults
-                    and sequences[-1]-sequences[0]+1>len(sequences)+1): faults.add('PACKET_LOSS')
+            groups=defaultdict(list)
+            for e in sequence_events: groups[e['event_type']].append(e)
+            # Stale/frozen content and multi-entity twins do not prove network loss.
+            if source['source_type']!='DIGITAL_TWIN' and not faults.intersection({'DELAY','STALE','FREEZE','TIME_SKEW'}):
+                for group in groups.values():
+                    sequences=sorted({e['sequence_no'] for e in group})
+                    if len(sequences)>=3 and len(sequences)==len(group) and sequences[-1]-sequences[0]+1>len(sequences)+1:
+                        faults.add('PACKET_LOSS')
             window = self.evidence[sid]
             while window and window[0][0] < state.now-60: window.popleft()
             if faults: evidence_ids.update(e['event_id'] for e in recent if state.fresh(e,120))
@@ -122,10 +145,29 @@ class Trust:
             age = min((state.now-timestamp(e['event_time']) for e in useful), default=120)
             scale = max((freshness(state.ref,e) for e in useful), default=3*period)
             trust = reputation * math.exp(-max(0,age)/scale) * (0.25 if confirmed_failure else 0.6 if faults else 1)
-            if confirmed_failure or (len(window) >= 3 and trust < 0.4): self.excluded.add(sid)
+            common=faults.intersection({'OUTAGE','DELAY','STALE','PACKET_LOSS','TIME_SKEW','BYZANTINE'})
+            if confirmed_failure or (len(window) >= 3 and trust < 0.4 and common): self.excluded.add(sid)
             if sid in self.excluded and self.recovery[sid] >= 3 and not faults: self.excluded.remove(sid)
             status = 'FAILED' if confirmed_failure else 'DEGRADED' if faults else 'OK' if useful else 'UNKNOWN'
             output.append(dict(source_id=sid, status=status, trust_score=round(trust,6),
                                confidence=0.8 if confirmed_failure else 0.65 if faults else 0.6 if useful else 0.35,
                                fault_types=sorted(faults)))
+            feature_scores={}
+            for feature in ('availability','speed','queue','visibility','rain','wind'):
+                bad=set(common)
+                if feature=='availability': bad.update(faults.intersection({'FALSE_LANE_CLOSURE'}))
+                if feature in ('speed','queue'): bad.update(faults.intersection({'FREEZE'}))
+                if feature=='speed': bad.update(faults.intersection({'BIAS','DRIFT'}))
+                records=self.feature_evidence[sid,feature]
+                while records and records[0][0]<state.now-60: records.popleft()
+                good_ids=feature_positive[feature]
+                mark=tuple(sorted(good_ids)),tuple(sorted(bad)),tuple(sorted(evidence_ids)) if bad else ()
+                if (bad or good_ids) and mark!=self.feature_signatures.get((sid,feature)):
+                    records.append((state.now,0 if bad else 1,1 if bad else 0))
+                    self.feature_signatures[sid,feature]=mark
+                good_count=sum(r[1] for r in records);bad_count=sum(r[2] for r in records)
+                rep=(1+good_count)/(2+good_count+bad_count)
+                value=rep*math.exp(-max(0,age)/scale)*(0.25 if confirmed_failure else 0.6 if bad else 1)
+                feature_scores[feature]=0 if confirmed_failure or (len(records)>=3 and value<.4 and bad) else value
+            self.feature_trust[sid]=feature_scores
         return output

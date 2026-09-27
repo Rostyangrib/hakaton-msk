@@ -1,7 +1,18 @@
 from .basic import telemetry, freshness
+from .state import timestamp
 
 
 def check(state, fusion, vid, event=None, segment_id=None, future=False):
+    event=event if event is not None else telemetry(state,vid)
+    cache=getattr(fusion,'odd_cache',None)
+    key=(vid,event.get('event_id'),segment_id or event['segment_id'],future) if event and event.get('event_id') else None
+    if key and cache is not None and key in cache: return cache[key]
+    result=_check(state,fusion,vid,event,segment_id,future)
+    if key and cache is not None: cache[key]=result
+    return result
+
+
+def _check(state, fusion, vid, event=None, segment_id=None, future=False):
     event = event if event is not None else telemetry(state,vid)
     vehicle = state.ref.vehicles[vid]
     profile = state.ref.profiles[vehicle['odd_profile_id']]
@@ -20,6 +31,8 @@ def check(state, fusion, vid, event=None, segment_id=None, future=False):
         if value is None:
             unknown = True
             continue
+        if field=='map_age_min':
+            value+=max(0,state.now-timestamp(event['event_time']))/60
         if (value < threshold if minimum else value > threshold): codes.append(code)
         certainty.append(0.5+0.5*min(1,abs(value-threshold)/max(threshold,0.01)))
     try:
@@ -44,13 +57,20 @@ def check(state, fusion, vid, event=None, segment_id=None, future=False):
         if weather['wind_mps'] > profile['max_crosswind_mps']:
             unknown = True
             state.diagnostics.append('crosswind_direction_unknown:'+vid)
+    memory=getattr(fusion,'memory',None)
+    if memory and not future and 'position' in locals() and memory.weather_uncertain(state,vid,position,weather):
+        unknown=True
+        state.diagnostics.append('weather_warning_memory:'+vid)
     if profile['v2x_required']:
         covering = [r for r,covered in state.ref.rsu_segments.items() if sid in covered]
         if not covering:
             codes.append('V2X')
         else:
             valid = [e for e in state.events('V2X_MESSAGE',sid) if e['source_id'] in covering and fusion.weight(e) > 0]
-            if valid:
+            service=fusion.v2x_status(sid) if hasattr(fusion,'v2x_status') else None
+            if service=='VIOLATED':
+                codes.append('V2X')
+            elif valid and service!='UNKNOWN':
                 certainty.append(min(1,sum(fusion.weight(e) for e in valid)))
             elif all(fusion.sources[r]['status'] == 'FAILED' for r in covering):
                 codes.append('V2X')
