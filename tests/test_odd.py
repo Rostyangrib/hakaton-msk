@@ -33,6 +33,24 @@ class OddTests(unittest.TestCase):
         self.assertEqual(result['odd_status'],'UNKNOWN')
         self.assertNotIn('WIND',result['violation_codes'])
 
+    def test_onboard_degradation_blocks_current_motion_without_fabricating_visibility(self):
+        clear=dict(self.weather,visibility_m=1000,rain_level=0,wind_mps=0)
+        e=dict(self.event,gnss_quality=1,map_age_min=0,
+               autonomy_state='DEGRADED',perception_health=.8)
+        fusion=WeatherFusion(clear)
+        current=check(self.state,fusion,'AV-001',e)
+        self.assertEqual(current['odd_status'],'UNKNOWN')
+        self.assertEqual(current['violation_codes'],[])
+        self.assertIn('perception_degraded_odd_uncertain:AV-001',self.state.diagnostics)
+        self.assertEqual(check(self.state,fusion,'AV-001',e,future=True)['odd_status'],'COMPLIANT')
+        e['perception_health']=0.9
+        self.assertEqual(check(self.state,fusion,'AV-001',e)['odd_status'],'COMPLIANT')
+        e['perception_health']=0.8
+        e['autonomy_state']='REMOTE_REQUESTED'
+        self.assertEqual(check(self.state,fusion,'AV-001',e)['odd_status'],'UNKNOWN')
+        e['autonomy_state']='AUTO'
+        self.assertEqual(check(self.state,fusion,'AV-001',e)['odd_status'],'COMPLIANT')
+
     def test_all_profile_boundaries_and_v2x(self):
         self.state.current[('V2X_MESSAGE','S001','RSU-01')] = dict(source_id='RSU-01')
         for profile_id,profile in self.state.ref.profiles.items():

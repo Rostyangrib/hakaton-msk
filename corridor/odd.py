@@ -71,6 +71,13 @@ def _check(state, fusion, vid, event=None, segment_id=None, future=False):
     if memory and not future and 'position' in locals() and memory.weather_uncertain(state,vid,position,weather):
         unknown=True
         state.diagnostics.append('weather_warning_memory:'+vid)
+    # Current onboard perception degradation means that a clear weather-station
+    # reading alone cannot establish that automated driving remains in ODD.
+    # It is not evidence for a specific VISIBILITY violation or future weather.
+    if (not future and event.get('autonomy_state') in ('DEGRADED','REMOTE_REQUESTED')
+            and event.get('perception_health',1)<0.9):
+        unknown=True
+        state.diagnostics.append('perception_degraded_odd_uncertain:'+vid)
     if profile['v2x_required']:
         covering = [r for r,covered in state.ref.rsu_segments.items() if sid in covered]
         if not covering:
