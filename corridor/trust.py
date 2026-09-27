@@ -19,6 +19,10 @@ class Trust:
         self.feature_evidence = defaultdict(deque)
         self.feature_signatures = {}
         self.feature_trust = {}
+        self.recovery_signatures = {}
+        self.feature_excluded = set()
+        self.feature_recovery = defaultdict(int)
+        self.feature_recovery_signatures = {}
 
     def assess(self, state):
         if self.generation != state.generation or self.scenario != state.scenario_id or self.started is None or state.now < self.started:
@@ -138,7 +142,6 @@ class Trust:
             if informative and signature != self.last_evidence.get(sid):
                 window.append((state.now, 0 if faults else 1, 1 if faults else 0))
                 self.last_evidence[sid] = signature
-                self.recovery[sid] = self.recovery[sid]+1 if not faults else 0
             good, bad = sum(e[1] for e in window), sum(e[2] for e in window)
             reputation = (1+good)/(2+good+bad)
             confirmed_failure = 'OUTAGE' in faults
@@ -147,6 +150,14 @@ class Trust:
             trust = reputation * math.exp(-max(0,age)/scale) * (0.25 if confirmed_failure else 0.6 if faults else 1)
             common=faults.intersection({'OUTAGE','DELAY','STALE','PACKET_LOSS','TIME_SKEW','BYZANTINE'})
             if confirmed_failure or (len(window) >= 3 and trust < 0.4 and common): self.excluded.add(sid)
+            live=[e for e in useful if state.fresh(e,freshness(state.ref,e)) and e.get('signature_valid',True)
+                  and timestamp(e['received_time'])-timestamp(e['event_time'])<=max(5,3*period)]
+            live_signature=tuple(sorted(e['event_id'] for e in live))
+            if faults: self.recovery[sid]=0
+            elif set(live_signature)-set(self.recovery_signatures.get(sid,())):
+                self.recovery[sid]+=1
+                self.recovery_signatures[sid]=live_signature
+            # Delivery recovery is separate from a positive measurement-reputation vote.
             if sid in self.excluded and self.recovery[sid] >= 3 and not faults: self.excluded.remove(sid)
             status = 'FAILED' if confirmed_failure else 'DEGRADED' if faults else 'OK' if useful else 'UNKNOWN'
             output.append(dict(source_id=sid, status=status, trust_score=round(trust,6),
@@ -168,6 +179,17 @@ class Trust:
                 good_count=sum(r[1] for r in records);bad_count=sum(r[2] for r in records)
                 rep=(1+good_count)/(2+good_count+bad_count)
                 value=rep*math.exp(-max(0,age)/scale)*(0.25 if confirmed_failure else 0.6 if bad else 1)
-                feature_scores[feature]=0 if confirmed_failure or (len(records)>=3 and value<.4 and bad) else value
+                feature_key=sid,feature
+                if confirmed_failure or (len(records)>=3 and value<.4 and bad): self.feature_excluded.add(feature_key)
+                fields={'availability':('lane_status','closure_state','lane_count_open','lane_count_open_estimate'),
+                        'speed':('speed_kmh',),'queue':('queue_estimate_m',),'visibility':('visibility_m',),'rain':('rain_level',),'wind':('wind_mps',)}[feature]
+                fresh_ids=tuple(sorted(e['event_id'] for e in live if any(f in e for f in fields)))
+                if bad: self.feature_recovery[feature_key]=0
+                elif set(fresh_ids)-set(self.feature_recovery_signatures.get(feature_key,())):
+                    self.feature_recovery[feature_key]+=1
+                    self.feature_recovery_signatures[feature_key]=fresh_ids
+                if feature_key in self.feature_excluded and self.feature_recovery[feature_key]>=3 and not bad:
+                    self.feature_excluded.remove(feature_key)
+                feature_scores[feature]=0 if feature_key in self.feature_excluded else value
             self.feature_trust[sid]=feature_scores
         return output

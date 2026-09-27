@@ -56,6 +56,21 @@ class ImprovementTests(unittest.TestCase):
         fusion.road_estimates()
         self.assertEqual(fusion.roads['S005']['state'],'UNKNOWN')
 
+    def test_weather_outage_recovers_without_fake_positive_votes(self):
+        trust=Trust()
+        def weather(eid,stamp):
+            return dict(event_id=eid,scenario_id='test',event_type='WEATHER_OBSERVATION',source_id='WX-01',station_id='WX-01',
+                        event_time=stamp,received_time=stamp,delivery_no=1,visibility_m=1000,rain_level=0,wind_mps=1,road_surface='DRY')
+        self.state.ingest(packet([weather('first','2026-09-28T00:00:10Z')]))
+        trust.assess(self.state)
+        self.state.ingest(dict(packet(),decision_time='2026-09-28T00:01:50Z'));trust.assess(self.state)
+        self.assertIn('WX-01',trust.excluded)
+        for i,stamp in enumerate(['2026-09-28T00:02:00Z','2026-09-28T00:02:10Z','2026-09-28T00:02:20Z']):
+            self.state.ingest(dict(packet([weather(str(i),stamp)]),decision_time=stamp));trust.assess(self.state)
+            self.assertEqual('WX-01' in trust.excluded,i<2)
+        self.assertEqual(sum(e[1] for e in trust.evidence['WX-01']),0)
+        self.assertNotIn(('WX-01','visibility'),trust.feature_excluded)
+
     def test_queue_without_speed_is_not_free_flow(self):
         sid='S005';lanes=int(self.state.ref.segments[sid]['lanes'])
         for i in range(3):
@@ -96,6 +111,20 @@ class ImprovementTests(unittest.TestCase):
         self.assertFalse(released)
         self.state.reset('other')
         self.assertFalse(memory.weather_uncertain(self.state,'AV-001',(0,0),good))
+
+    def test_expiration_of_peers_is_not_a_new_clearance(self):
+        memory=SafetyMemory();self.state.now=10
+        memory.road(self.state,'S001',dict(state='CLOSED'),('bad',))
+        self.state.now=15
+        self.assertEqual(memory.road(self.state,'S001',dict(state='OPEN'),('good','a','b'))['state'],'UNKNOWN')
+        self.state.now=20
+        self.assertEqual(memory.road(self.state,'S001',dict(state='OPEN'),('good','a'))['state'],'UNKNOWN')
+        self.state.now=25
+        self.assertEqual(memory.road(self.state,'S001',dict(state='OPEN'),('good',))['state'],'UNKNOWN')
+        self.state.now=30
+        self.assertEqual(memory.road(self.state,'S001',dict(state='OPEN'),('next',))['state'],'UNKNOWN')
+        self.state.now=35
+        self.assertEqual(memory.road(self.state,'S001',dict(state='OPEN'),('third',))['state'],'OPEN')
 
     def test_v2x_fresh_message_does_not_override_explicit_packet_loss(self):
         a=event('v',signature_valid=True)

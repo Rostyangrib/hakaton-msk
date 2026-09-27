@@ -18,11 +18,12 @@ class SafetyMemory:
         previous=self.roads.get(sid)
         hazardous=estimate['state'] in ('CLOSED','PARTIAL_BLOCK','CONGESTED')
         if hazardous:
-            self.roads[sid]=dict(value=dict(estimate),time=state.now,clear=0,signature=signature)
+            self.roads[sid]=dict(value=dict(estimate),time=state.now,clear=0,signature=signature,seen=set(signature))
         elif previous and estimate['state']=='OPEN' and state.now-previous['time']<=60:
-            if signature!=previous['signature']:
+            if set(signature)-previous['seen']:
                 previous['clear']+=1
                 previous['signature']=signature
+                previous['seen'].update(signature)
             if previous['clear']<3:
                 # Do not carry a fabricated closure or lane count after clearance.
                 estimate=dict(estimate,state='UNKNOWN',confidence=0.35,recovery_pending=True)
@@ -45,7 +46,7 @@ class SafetyMemory:
         old=self.weather.get(vid)
         if bad:
             if old is None or signature!=old['signature']:
-                self.weather[vid]=dict(time=state.now,position=position,clear=0,signature=signature,sources=contributors)
+                self.weather[vid]=dict(time=state.now,position=position,clear=0,signature=signature,sources=contributors,seen=set(signature))
             return False  # Current range already drives the ordinary ODD check.
         if old is None: return False
         if state.now-old['time']>90 or math.dist(position,old['position'])>5000:
@@ -53,9 +54,10 @@ class SafetyMemory:
             return False
         observed=set(weather.get('sources',())) if weather else set()
         # New stations outside the old warning's coverage do not prove clearance.
-        if weather and (not old['sources'] or old['sources']<=observed) and signature!=old['signature']:
+        if weather and (not old['sources'] or old['sources']<=observed) and set(signature)-old['seen']:
             old['clear']+=1
             old['signature']=signature
+            old['seen'].update(signature)
         if old['clear']>=3:
             self.weather.pop(vid,None)
             return False
