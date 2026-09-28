@@ -1,0 +1,16 @@
+{
+  "version": "2.1",
+  "open_scenarios": [
+    "TRAIN-001",
+    "TRAIN-002",
+    "TRAIN-003",
+    "TRAIN-004",
+    "PUBLIC-101",
+    "PUBLIC-102"
+  ],
+  "labels": {
+    "TRAIN": "included",
+    "PUBLIC": "not_included"
+  },
+  "private_scenarios_included": false
+}

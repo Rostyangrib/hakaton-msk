@@ -25,7 +25,6 @@ class Fusion:
         self.excluded = excluded
         self.roads = {}
         self.weather_cache = {}
-        self.segment_weather_cache = {}
         self.feature_trust=feature_trust or {}
         self.memory=memory
         self.odd_cache={}
@@ -44,20 +43,10 @@ class Fusion:
         result = []
         for sid, segment in sorted(self.state.ref.segments.items()):
             observations = {}
-            closure_warning = False
             for kind in ('ROAD_OBSERVATION','V2X_MESSAGE','DIGITAL_TWIN_SEGMENT'):
                 for event in self.state.events(kind,sid):
                     weight = self.weight(event)
                     vote = availability_vote(event,segment)
-                    # Disagreement alone cannot prove that a closure is false.
-                    # Even an availability-excluded reporter retains a safety veto
-                    # until it clears, expires, or has an independent integrity fault.
-                    faults=set(self.sources.get(event['source_id'],{}).get('fault_types',()))
-                    if (vote=='CLOSED' and 'FALSE_LANE_CLOSURE' in faults
-                            and not faults.intersection({'OUTAGE','STALE','TIME_SKEW','BYZANTINE','DELAY','FREEZE'})
-                            and event.get('signature_valid',True)
-                            and self.state.fresh(event,freshness(self.state.ref,event))):
-                        closure_warning=True
                     if max(weight,self.weight(event,'speed'),self.weight(event,'queue'))>0:
                         observations[event['source_id']] = (event,weight,vote)
             scores = defaultdict(float)
@@ -79,9 +68,6 @@ class Fusion:
                 elif sum(w>0 and v=='OPEN' for e,w,v in observations.values())>=2 or any(w>0 and v=='OPEN' and self.feature_trust.get(e['source_id'],{}).get('availability',self.sources[e['source_id']]['trust_score'])>=0.7 for e,w,v in observations.values()):
                     chosen,agreement = 'OPEN',1.0
             availability=chosen
-            if closure_warning and chosen not in ('CLOSED','UNKNOWN'):
-                chosen=availability='UNKNOWN'
-                agreement=0
             load_weights={}
             for e,w,v in observations.values():
                 speed=e.get('speed_kmh') if e['event_type']=='ROAD_OBSERVATION' else None
@@ -130,56 +116,11 @@ class Fusion:
             latest=max((timestamp(e['event_time']) for e in history if timestamp(e['event_time'])<=self.state.now),default=None)
             missed=latest is not None and self.state.now-latest>3*cycle
             if assessment['status']=='FAILED' or explicit_bad or sustained_delay or missed: statuses.append('VIOLATED')
-            elif set(assessment.get('fault_types',())).intersection({'PACKET_LOSS','DELAY','TIME_SKEW','STALE','BYZANTINE','OUTAGE'}): statuses.append('UNKNOWN')
             elif events: statuses.append('COMPLIANT')
             else: statuses.append('UNKNOWN')
         status='COMPLIANT' if 'COMPLIANT' in statuses else 'VIOLATED' if not statuses or all(s=='VIOLATED' for s in statuses) else 'UNKNOWN'
         self.service_cache[sid]=status
         return status
-
-    def segment_weather(self,sid):
-        """Check every coverage region along a straight reference segment.
-
-        Coverage changes only at circle/segment intersections. Sampling endpoints
-        and the interior of each resulting interval catches narrow warnings and
-        uncovered gaps that a single midpoint would miss.
-        """
-        if sid in self.segment_weather_cache: return self.segment_weather_cache[sid]
-        ref=self.state.ref
-        length=float(ref.segments[sid]['length_m'])
-        start=ref.position(sid,0); end=ref.position(sid,length)
-        dx,dy=end[0]-start[0],end[1]-start[1]
-        a=dx*dx+dy*dy
-        boundaries={0.0,1.0}
-        if a:
-            for station in ref.weather.values():
-                x,y=start[0]-float(station['x_m']),start[1]-float(station['y_m'])
-                b=2*(x*dx+y*dy)
-                c=x*x+y*y-float(station['coverage_radius_m'])**2
-                disc=b*b-4*a*c
-                if disc>=0:
-                    for t in ((-b-math.sqrt(disc))/(2*a),(-b+math.sqrt(disc))/(2*a)):
-                        if 0<t<1: boundaries.add(t)
-        ordered=sorted(boundaries)
-        samples=set(ordered)|{(lo+hi)/2 for lo,hi in zip(ordered,ordered[1:])}
-        values=[self.weather(ref.position(sid,t*length)) for t in sorted(samples)]
-        if any(w is None for w in values):
-            result=None
-        else:
-            result=dict(values[0])
-            ranges={}
-            for field in ('visibility_m','rain_level','wind_mps'):
-                intervals=[w.get('safety_ranges',w['ranges'])[field] for w in values]
-                ranges[field]=(min(r[0] for r in intervals),max(r[1] for r in intervals))
-            result['safety_ranges']=result['ranges']=ranges
-            result['visibility_m']=ranges['visibility_m'][0]
-            result['rain_level']=ranges['rain_level'][1]
-            result['wind_mps']=ranges['wind_mps'][1]
-            result['safety_road_surface']=max((w['safety_road_surface'] for w in values),
-                key=lambda k:{'DRY':0,'WET':1,'WATER_FILM':2,'FLOODED':3}.get(k,3))
-            result['confidence']=min(w['confidence'] for w in values)
-        self.segment_weather_cache[sid]=result
-        return result
 
     def weather(self, position):
         if position in self.weather_cache: return self.weather_cache[position]
@@ -192,14 +133,11 @@ class Fusion:
         result['sources']=sorted(e['source_id'] for e,w in events)
         result['event_ids']=sorted(e['event_id'] for e,w in events)
         result['ranges']={}
-        result['safety_ranges']={}
         agreements = []
         for field in ('visibility_m','rain_level','wind_mps'):
             spatial_support=1
             feature={'visibility_m':'visibility','rain_level':'rain','wind_mps':'wind'}[field]
             applicable=[(e,self.weight(e,feature)) for e,w in events if self.weight(e,feature)>0]
-            if applicable:
-                result['safety_ranges'][field]=(min(e[field] for e,w in applicable),max(e[field] for e,w in applicable))
             if field=='rain_level':
                 # Overlapping coverage is not proof that distinct station locations
                 # have identical precipitation. Resolve only a dominant local station;
@@ -228,12 +166,10 @@ class Fusion:
         surfaces = defaultdict(float)
         for e,w in events: surfaces[e['road_surface']] += w
         result['road_surface'] = min(surfaces,key=lambda k:(-surfaces[k],k))
-        # A minority report of water cannot be voted away for motion planning.
-        result['safety_road_surface'] = max(surfaces,key=lambda k:{'DRY':0,'WET':1,'WATER_FILM':2,'FLOODED':3}.get(k,3))
         result['confidence'] = confidence(min(agreements),[w for _,w in events])
         result['agreement'] = min(agreements)
         result['risk_sources_visibility']=[e['source_id'] for e,w in events if self.weight(e,'visibility')>0 and e['visibility_m']==result['ranges']['visibility_m'][0]]
-        result['risk_sources_rain']=[e['source_id'] for e,w in events if self.weight(e,'rain')>0 and e['rain_level']==result['safety_ranges']['rain_level'][1]]
+        result['risk_sources_rain']=[e['source_id'] for e,w in events if self.weight(e,'rain')>0 and e['rain_level']==result['ranges']['rain_level'][1]]
         self.weather_cache[position] = result
         return result
 

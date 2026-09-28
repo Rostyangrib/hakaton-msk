@@ -37,7 +37,7 @@ def _check(state, fusion, vid, event=None, segment_id=None, future=False):
         certainty.append(0.5+0.5*min(1,abs(value-threshold)/max(threshold,0.01)))
     try:
         position = state.ref.position(sid, float(segment['length_m'])/2 if future else event['offset_m'])
-        weather = fusion.segment_weather(sid) if future and hasattr(fusion,'segment_weather') else fusion.weather(position)
+        weather = fusion.weather(position)
     except ValueError:
         weather = None
     if weather is None:
@@ -48,14 +48,13 @@ def _check(state, fusion, vid, event=None, segment_id=None, future=False):
             ('rain_level',profile['max_rain_level'],'RAIN',False),
         ):
             value = weather[field]
-            lower,upper=weather.get('safety_ranges',weather.get('ranges',{})).get(field,(value,value))
+            lower,upper=weather.get('ranges',{}).get(field,(value,value))
             all_violated = upper < threshold if minimum else lower > threshold
             all_compliant = lower >= threshold if minimum else upper <= threshold
             if all_violated: codes.append(code)
             elif not all_compliant: unknown=True
             certainty.append(weather['confidence']*(0.5+0.5*min(1,abs(value-threshold)/max(threshold,1))))
-        wind_upper=weather.get('safety_ranges',weather.get('ranges',{})).get('wind_mps',(weather['wind_mps'],)*2)[1]
-        if wind_upper > profile['max_crosswind_mps']:
+        if weather['wind_mps'] > profile['max_crosswind_mps']:
             unknown = True
             state.diagnostics.append('crosswind_direction_unknown:'+vid)
         # Independent onboard degradation corroborates a persistent low-visibility

@@ -71,22 +71,10 @@ def inactive(state, vid, event):
         hub = state.ref.hubs[state.ref.vehicles[vid]['destination_hub_id']]
         try:
             pos = state.ref.position(event['segment_id'], event['offset_m'])
-            # Nearby traffic on another road, or a repeated stationary sample,
-            # does not establish completion of the transport order.
-            segment = state.ref.segments[event['segment_id']]
-            at_destination = (segment['to_node'] == hub['node_id']
-                              and float(segment['length_m'])-event['offset_m'] <= 50)
-            if at_destination and math.dist(pos, (float(hub['x_m']), float(hub['y_m']))) <= 50 and event['speed_kmh'] <= 1:
-                stamp = timestamp(event['event_time'])
-                old = state.inactivity_measurements.get(vid)
-                count = state.inactivity[vid]
-                if old is None or (stamp > old[0] and event.get('event_id') != old[1]):
-                    count += 1
-                    state.inactivity_measurements[vid] = (stamp,event.get('event_id'))
+            if math.dist(pos, (float(hub['x_m']), float(hub['y_m']))) <= 50 and event['speed_kmh'] <= 1:
+                count = state.inactivity[vid] + 1
         except ValueError:
             pass
-    if not count:
-        state.inactivity_measurements.pop(vid,None)
     state.inactivity[vid] = count
     return count >= 3
 

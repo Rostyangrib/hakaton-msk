@@ -233,7 +233,7 @@ class ImprovementTests(unittest.TestCase):
         fusion.roads={s:dict(state='OPEN',confidence=1,lanes=int(r['lanes']),speed=None,queue=0) for s,r in self.state.ref.segments.items()}
         with patch('corridor.routing.telemetry',return_value=e),patch('corridor.routing.check',return_value={'odd_status':'UNKNOWN'}):
             router=Router(self.state,fusion)
-            self.assertIn('S001',router.costs('AV-001',True))
+            self.assertNotIn('S001',router.costs('AV-001',True))
             self.assertNotIn('S001',router.costs('AV-001',True,confirmed=True))
 
     def test_current_fragment_not_ignored_for_stop_approach(self):

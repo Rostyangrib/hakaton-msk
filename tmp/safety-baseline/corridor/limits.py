@@ -2,17 +2,6 @@
 from .basic import telemetry
 
 
-def reroute_needs_speed_command(state,fusion,vid,event,route):
-    """REROUTE has no documented simultaneous LIMIT_SPEED semantics."""
-    for sid,future in [(event['segment_id'],False)]+[(s,True) for s in route]:
-        cap=segment_speed_limit(state,fusion,vid,event,sid,future)
-        nominal=min(float(state.ref.segments[sid]['speed_limit_kmh']),
-                    float(state.ref.vehicles[vid]['nominal_max_speed_kmh']))
-        if cap is None or cap < nominal:
-            return True
-    return False
-
-
 def segment_speed_limit(state,fusion,vid,event,sid=None,future=False):
     sid=sid or event['segment_id']
     segment=state.ref.segments[sid]
@@ -21,15 +10,13 @@ def segment_speed_limit(state,fusion,vid,event,sid=None,future=False):
     if estimate['state']=='PARTIAL_BLOCK' or estimate.get('partial_block'): limits.append(40)
     if estimate['state']=='CONGESTED' or estimate.get('load')=='CONGESTED' or (estimate['queue'] or 0)>=100: limits.append(30)
     position=state.ref.position(sid,float(segment['length_m'])/2 if future else event['offset_m'])
-    weather=fusion.segment_weather(sid) if future and hasattr(fusion,'segment_weather') else fusion.weather(position)
+    weather=fusion.weather(position)
     if weather:
-        surface=weather.get('safety_road_surface',weather['road_surface'])
-        if surface=='FLOODED': return None
-        if surface=='WET': limits.append(60)
-        if surface=='WATER_FILM': limits.append(40)
+        if weather['road_surface']=='FLOODED': return None
+        if weather['road_surface']=='WET': limits.append(60)
+        if weather['road_surface']=='WATER_FILM': limits.append(40)
         minimum=state.ref.profiles[state.ref.vehicles[vid]['odd_profile_id']]['min_visibility_m']
-        visibility=weather.get('safety_ranges',weather.get('ranges',{})).get('visibility_m',(weather['visibility_m'],)*2)[0]
-        if minimum <= visibility <= 1.25*minimum: limits.append(30)
+        if minimum <= weather['visibility_m'] <= 1.25*minimum: limits.append(30)
     for e in state.events('V2X_MESSAGE',sid):
         if fusion.weight(e)>0 and fusion.sources[e['source_id']]['trust_score']>=0.4 and e['advisory_speed_kmh']>0:
             limits.append(e['advisory_speed_kmh'])

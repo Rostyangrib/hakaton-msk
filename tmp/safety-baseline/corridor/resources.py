@@ -2,7 +2,7 @@ from collections import Counter
 import math
 from .basic import telemetry
 from .routing import dijkstra
-from .limits import segment_speed_limit, current_fragment_allowed, reroute_needs_speed_command
+from .limits import segment_speed_limit, current_fragment_allowed
 from .odd import check
 
 
@@ -55,9 +55,8 @@ def waiting_zone(state,vid,event):
     try: pos=state.ref.position(event['segment_id'],event['offset_m'])
     except ValueError: return False
     if any(math.dist(pos,(float(h['x_m']),float(h['y_m']))) <= 50 for h in state.ref.hubs.values()): return True
-    # The catalog gives no stop offset. Being somewhere on its road segment
-    # is not evidence that the vehicle has reached the parking area.
-    return False
+    return any(s['segment_id'] == event['segment_id'] and float(state.ref.vehicles[vid]['gross_mass_t']) <= float(s['max_vehicle_mass_t'])
+               for s in state.ref.stops.values())
 
 
 def speed_limit(state,fusion,vid,event,route=None):
@@ -96,21 +95,13 @@ def apply(state,fusion,router,decision):
             road=fusion.roads[event['segment_id']]
             danger=road['state']=='CLOSED'
             weather=fusion.weather(state.ref.position(event['segment_id'],event['offset_m']))
-            danger=danger or bool(weather and weather.get('safety_road_surface',weather['road_surface'])=='FLOODED')
-        if (event and action['motion_action']=='REROUTE'
-                and reroute_needs_speed_command(state,fusion,vid,event,action['route_segment_ids'])):
-            # Do not silently lose a mandatory cap when selecting another route.
-            action.pop('route_segment_ids',None)
-            action.update(motion_action='HOLD',rationale_codes=['LOW_CONFIDENCE'])
-            state.diagnostics.append('reroute_speed_conflict:'+vid)
+            danger=danger or bool(weather and weather['road_surface']=='FLOODED')
         requires = danger or estimate['odd_status']!='COMPLIANT' or action['motion_action']=='HOLD' or bool(event and event.get('autonomy_state')=='REMOTE_REQUESTED')
         if requires:
             requests[vid]=(0 if danger or board_risk else 1 if estimate['odd_status']=='VIOLATED' else 2,int(state.ref.vehicles[vid]['cargo_priority']),hazard_eta(state,fusion,router,vid,event,danger or board_risk or estimate['odd_status']!='COMPLIANT'))
-        unsafe=danger or estimate['odd_status']!='COMPLIANT' or action['motion_action']=='HOLD'
+        unsafe=danger or estimate['odd_status']=='VIOLATED' or action['motion_action']=='HOLD'
         if unsafe:
             action.pop('route_segment_ids',None)
-            action.pop('speed_limit_kmh',None)
-            action.pop('safe_stop_id',None)
             action.update(motion_action='HOLD',rationale_codes=['ODD_'+c for c in estimate['violation_codes']] or ['LOW_CONFIDENCE'])
             if not waiting_zone(state,vid,event) and current_fragment_allowed(state,fusion,vid,event):
                 costs=router.costs(vid,True,confirmed=True)
@@ -130,6 +121,8 @@ def apply(state,fusion,router,decision):
                     candidates[vid]={}
                     state.diagnostics.append('unsafe_current_stop_approach:'+vid)
         elif event:
+            # A REROUTE cannot also carry LIMIT_SPEED in this single-action protocol.
+            # Preserve the agreed route rule; speed constraints still affect route cost.
             limit=speed_limit(state,fusion,vid,event,router.paths.get(vid,{}).get('dynamic'))
             if limit is None:
                 action.update(motion_action='HOLD',rationale_codes=['LOW_CONFIDENCE'])

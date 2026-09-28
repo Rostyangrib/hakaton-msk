@@ -3,7 +3,7 @@ from .basic import telemetry
 from .contract import skeleton
 from .resources import support_selection
 from .odd import check
-from .limits import current_fragment_allowed,segment_speed_limit,reroute_needs_speed_command
+from .limits import current_fragment_allowed,segment_speed_limit
 
 
 def errors(state,fusion,decision):
@@ -22,17 +22,7 @@ def errors(state,fusion,decision):
             from .board import uncertain as board_uncertain
             if event and board_uncertain(state,fusion,vid,event): reasons.append('unconfirmed_board_health')
             if event is None or not state.fresh(event,15): reasons.append('missing_position')
-            else:
-                if estimates[event['segment_id']]['state'] in ('CLOSED','UNKNOWN'): reasons.append('unsafe_current_segment')
-                if not ref.compatible(vid,event['segment_id']): reasons.append('incompatible_current_segment')
-                if fusion:
-                    if check(state,fusion,vid,event)['odd_status']!='COMPLIANT': reasons.append('unconfirmed_current_odd')
-                    cap=segment_speed_limit(state,fusion,vid,event)
-                    nominal=min(float(ref.segments[event['segment_id']]['speed_limit_kmh']),float(ref.vehicles[vid]['nominal_max_speed_kmh']))
-                    if cap is None: reasons.append('unsafe_current_surface')
-                    elif a['motion_action']=='LIMIT_SPEED':
-                        if not 0 < (a.get('speed_limit_kmh') or 0) <= cap: reasons.append('unsafe_speed_limit')
-                    elif cap < nominal: reasons.append('missing_speed_constraint')
+            elif estimates[event['segment_id']]['state'] in ('CLOSED','UNKNOWN'): reasons.append('unsafe_current_segment')
             if odd[vid]['odd_status']!='COMPLIANT': reasons.append('unconfirmed_current_odd')
         if a['motion_action']=='REROUTE':
             route=a.get('route_segment_ids',[])
@@ -45,10 +35,9 @@ def errors(state,fusion,decision):
                 node=segment['to_node']
                 if not ref.compatible(vid,sid): reasons.append('incompatible_edge')
                 if estimates[sid]['state'] in ('CLOSED','UNKNOWN'): reasons.append('unavailable_edge')
-                if fusion and check(state,fusion,vid,event,sid,True)['odd_status']!='COMPLIANT': reasons.append('incompatible_future_odd')
+                if fusion and check(state,fusion,vid,event,sid,True)['odd_status']=='VIOLATED': reasons.append('incompatible_future_odd')
             target=ref.hubs[ref.vehicles[vid]['destination_hub_id']]['node_id']
             if node != target: reasons.append('wrong_destination')
-            if fusion and event and all(s in ref.segments for s in route) and reroute_needs_speed_command(state,fusion,vid,event,route): reasons.append('missing_speed_constraint')
         if a['motion_action']=='SAFE_STOP':
             stop=ref.stops.get(a.get('safe_stop_id'))
             if stop is None: reasons.append('unknown_stop')

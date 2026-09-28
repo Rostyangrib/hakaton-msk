@@ -27,7 +27,6 @@ class State:
         self.watermark = -60
         self.diagnostics = []
         self.inactivity = defaultdict(int)
-        self.inactivity_measurements = {}
         self._event_cache = {}
         self._ordered_current = None
 

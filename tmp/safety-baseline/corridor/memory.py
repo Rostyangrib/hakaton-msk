@@ -60,7 +60,7 @@ class SafetyMemory:
     def weather_uncertain(self,state,vid,position,weather):
         self.reset_for(state)
         profile=state.ref.profiles[state.ref.vehicles[vid]['odd_profile_id']]
-        ranges=weather.get('safety_ranges',weather.get('ranges',{})) if weather else {}
+        ranges=weather.get('ranges',{}) if weather else {}
         visibility=ranges.get('visibility_m',(weather['visibility_m'],)*2) if weather else None
         rain=ranges.get('rain_level',(weather['rain_level'],)*2) if weather else None
         signature=tuple(weather.get('event_ids',())) if weather else ()

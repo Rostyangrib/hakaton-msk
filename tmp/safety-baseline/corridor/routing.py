@@ -51,7 +51,7 @@ class Router:
                 estimate = self.fusion.roads[sid]
                 if estimate['state'] in ('CLOSED','UNKNOWN'): continue
                 odd=check(self.state,self.fusion,vid,event,sid,True)['odd_status'] if event else 'UNKNOWN'
-                if event is None or odd != 'COMPLIANT': continue
+                if event is None or odd == 'VIOLATED' or (confirmed and odd!='COMPLIANT'): continue
                 lanes = estimate['lanes'] if estimate['lanes'] is not None else int(segment['lanes'])
                 speed = min(speed,estimate['speed']) if estimate['speed'] is not None else speed*lanes/int(segment['lanes'])
                 limit=segment_speed_limit(self.state,self.fusion,vid,event,sid,True)
@@ -78,7 +78,6 @@ class Router:
             if event is None or action['motion_action'] == 'NO_ACTION' or assessments[vid]['odd_status'] != 'COMPLIANT': continue
             current = self.fusion.roads[event['segment_id']]
             if current['state'] in ('CLOSED','UNKNOWN'): continue
-            if not self.state.ref.compatible(vid,event['segment_id']): continue
             static,_ = self.route(vid)
             dynamic,_ = self.route(vid,True)
             self.paths[vid] = dict(static=static,dynamic=dynamic)

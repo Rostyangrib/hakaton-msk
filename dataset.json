@@ -1,0 +1,26 @@
+{
+  "dataset_id": "AV-CORRIDOR-2026-V2",
+  "dataset_version": "2.0",
+  "synthetic_data": true,
+  "contents": {
+    "reference": "01_reference",
+    "train": "02_train",
+    "public": "03_public",
+    "contract": "04_contract"
+  },
+  "scenario_ids": [
+    "TRAIN-001",
+    "TRAIN-002",
+    "TRAIN-003",
+    "TRAIN-004",
+    "PUBLIC-101",
+    "PUBLIC-102"
+  ],
+  "counts": {
+    "segments": 86,
+    "vehicles": 72,
+    "sources": 50,
+    "safe_stops": 10,
+    "hubs": 4
+  }
+}
