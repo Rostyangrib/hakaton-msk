@@ -1,0 +1,34 @@
+{
+  "solution-image.tar": {
+    "sha256": "8d9f18deebdd67f3fcef9a3d4996c87abbca94d5fbc420a0f11ed685d3e9959b",
+    "bytes": 43305984
+  },
+  "source.zip": {
+    "sha256": "6175cf68b739dba174c6eda6063f33fee20b6f1efd9100456b985de59f91807f",
+    "bytes": 488573
+  },
+  "PUBLIC-101.result.ndjson.gz": {
+    "sha256": "1ec443d3a88633fa57220ac2375e3f8dd35ac8977a510b70409ea55f72934a26",
+    "bytes": 126900
+  },
+  "PUBLIC-102.result.ndjson.gz": {
+    "sha256": "c89f63dc46a46938b44d8063753ee8234e45f7fdb24e1a9c6ad596f008b18d4a",
+    "bytes": 252550
+  },
+  "README.md": {
+    "sha256": "79a5d621b1ebbcc645e082dc75c377c5f6ce0778f34c99e8ea66d43588926953",
+    "bytes": 4943
+  },
+  "LOGIC.md": {
+    "sha256": "6adbe8fcb0b1c9939bc5997b4b31d5779b8fa1ecbff2cac855e7c313524d6298",
+    "bytes": 48873
+  },
+  "METRICS.md": {
+    "sha256": "c372043b406717bf98430478a8c30745b03c86dc1b76cdb318fbf584f6887e38",
+    "bytes": 7717
+  },
+  "ORGANIZER_AUDIT.md": {
+    "sha256": "e66a8d40e4403b3b51695e8ffadadf8ecdcf0cdb944dd7b64e5002be290dad6b",
+    "bytes": 15648
+  }
+}

@@ -1,0 +1,9 @@
+{"event": "ready", "startup_ms": 23.823}
+{"event": "packet", "packet_id": "PUBLIC-101-P0001", "latency_ms": 26.625, "duplicates": 0, "late_events": 0, "rejected_events": 0}
+{"event": "packet", "packet_id": "PUBLIC-101-P0100", "latency_ms": 24.753, "duplicates": 0, "late_events": 0, "rejected_events": 0}
+{"event": "packet", "packet_id": "PUBLIC-101-P0200", "latency_ms": 23.484, "duplicates": 0, "late_events": 0, "rejected_events": 0}
+{"event": "packet", "packet_id": "PUBLIC-101-P0300", "latency_ms": 23.263, "duplicates": 0, "late_events": 0, "rejected_events": 0}
+{"event": "packet", "packet_id": "PUBLIC-101-P0400", "latency_ms": 23.594, "duplicates": 0, "late_events": 0, "rejected_events": 0}
+{"event": "packet", "packet_id": "PUBLIC-101-P0500", "latency_ms": 19.892, "duplicates": 0, "late_events": 0, "rejected_events": 0}
+{"event": "packet", "packet_id": "PUBLIC-101-P0540", "latency_ms": 19.1, "duplicates": 0, "late_events": 0, "rejected_events": 0}
+{"event": "complete", "packets": 540, "peak_rss_bytes": 70332416}

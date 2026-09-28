@@ -1,0 +1,6 @@
+*
+!Dockerfile
+!corridor
+!corridor/*.py
+!models
+!models/forest.json

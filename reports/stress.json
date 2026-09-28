@@ -1,0 +1,18 @@
+{
+  "packets": 240,
+  "seed": 7391,
+  "schema_valid": true,
+  "resources_valid": true,
+  "reroute_invariants_valid": true,
+  "latency_ms_max": 47.55812499206513,
+  "mutations": [
+    "65% event loss",
+    "250 second complete outage",
+    "duplicates",
+    "shuffled delivery",
+    "unknown entity references",
+    "mass simultaneous ODD violations",
+    "unknown optional fields",
+    "repeated packet"
+  ]
+}

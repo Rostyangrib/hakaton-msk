@@ -1,0 +1,19 @@
+{
+  "segment_macro_f1": 0.9934021672038229,
+  "source_status_macro_f1": 0.9938287326091207,
+  "source_fault_types_macro_f1": 0.9888736574124591,
+  "source_fault_composite": 0.9889244473243418,
+  "odd_macro_f1": 0.9792959773289129,
+  "odd_violation_codes_macro_f1": 0.9753802604474049,
+  "confidence_calibration": 0.9977210930321991,
+  "weighted_reference_action_agreement": 0.9674126341412991,
+  "train_packets": 2160,
+  "total_packets": 3420,
+  "schema_valid_packets": 3420,
+  "local_critical_episodes": 0,
+  "remote_overcapacity_steps": 0,
+  "safe_stop_overcapacity_steps": 0,
+  "docker_max_packet_latency_ms": 183.4765000094194,
+  "docker_max_startup_sec": 0.4038971250120085,
+  "docker_max_peak_rss_bytes": 69554176
+}

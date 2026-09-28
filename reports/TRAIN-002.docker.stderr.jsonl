@@ -1,0 +1,9 @@
+{"event": "ready", "startup_ms": 23.501}
+{"event": "packet", "packet_id": "TRAIN-002-P0001", "latency_ms": 25.927, "duplicates": 0, "late_events": 0, "rejected_events": 0}
+{"event": "packet", "packet_id": "TRAIN-002-P0100", "latency_ms": 24.527, "duplicates": 0, "late_events": 0, "rejected_events": 0}
+{"event": "packet", "packet_id": "TRAIN-002-P0200", "latency_ms": 23.219, "duplicates": 0, "late_events": 0, "rejected_events": 0}
+{"event": "packet", "packet_id": "TRAIN-002-P0300", "latency_ms": 23.956, "duplicates": 0, "late_events": 0, "rejected_events": 0}
+{"event": "packet", "packet_id": "TRAIN-002-P0400", "latency_ms": 21.721, "duplicates": 0, "late_events": 0, "rejected_events": 0}
+{"event": "packet", "packet_id": "TRAIN-002-P0500", "latency_ms": 19.534, "duplicates": 0, "late_events": 0, "rejected_events": 0}
+{"event": "packet", "packet_id": "TRAIN-002-P0540", "latency_ms": 18.975, "duplicates": 0, "late_events": 0, "rejected_events": 0}
+{"event": "complete", "packets": 540, "peak_rss_bytes": 69726208}
