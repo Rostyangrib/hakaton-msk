@@ -19,6 +19,8 @@ def errors(state,fusion,decision):
         if odd[vid]['odd_status']=='VIOLATED' and a['motion_action'] in ('CONTINUE','NO_ACTION') and not a['remote_support_required']: reasons.append('odd_without_support')
         if a['motion_action']=='NO_ACTION' and state.inactivity[vid]<3: reasons.append('unconfirmed_inactivity')
         if a['motion_action'] in ('CONTINUE','LIMIT_SPEED','REROUTE'):
+            from .board import uncertain as board_uncertain
+            if event and board_uncertain(state,fusion,vid,event): reasons.append('unconfirmed_board_health')
             if event is None or not state.fresh(event,15): reasons.append('missing_position')
             elif estimates[event['segment_id']]['state'] in ('CLOSED','UNKNOWN'): reasons.append('unsafe_current_segment')
             if odd[vid]['odd_status']!='COMPLIANT': reasons.append('unconfirmed_current_odd')

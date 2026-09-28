@@ -41,7 +41,7 @@ class OddTests(unittest.TestCase):
         current=check(self.state,fusion,'AV-001',e)
         self.assertEqual(current['odd_status'],'UNKNOWN')
         self.assertEqual(current['violation_codes'],[])
-        self.assertIn('perception_degraded_odd_uncertain:AV-001',self.state.diagnostics)
+        self.assertIn('board_health_odd_uncertain:AV-001',self.state.diagnostics)
         self.assertEqual(check(self.state,fusion,'AV-001',e,future=True)['odd_status'],'COMPLIANT')
         e['perception_health']=0.9
         self.assertEqual(check(self.state,fusion,'AV-001',e)['odd_status'],'COMPLIANT')

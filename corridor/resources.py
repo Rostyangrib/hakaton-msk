@@ -89,6 +89,8 @@ def apply(state,fusion,router,decision):
         event=telemetry(state,vid)
         estimate=assessments[vid]
         danger=False
+        from .board import uncertain as board_uncertain
+        board_risk=bool(event and state.fresh(event,15) and board_uncertain(state,fusion,vid,event))
         if event and state.fresh(event,15):
             road=fusion.roads[event['segment_id']]
             danger=road['state']=='CLOSED'
@@ -96,7 +98,7 @@ def apply(state,fusion,router,decision):
             danger=danger or bool(weather and weather['road_surface']=='FLOODED')
         requires = danger or estimate['odd_status']!='COMPLIANT' or action['motion_action']=='HOLD' or bool(event and event.get('autonomy_state')=='REMOTE_REQUESTED')
         if requires:
-            requests[vid]=(0 if danger else 1 if estimate['odd_status']=='VIOLATED' else 2,int(state.ref.vehicles[vid]['cargo_priority']),hazard_eta(state,fusion,router,vid,event,danger or estimate['odd_status']!='COMPLIANT'))
+            requests[vid]=(0 if danger or board_risk else 1 if estimate['odd_status']=='VIOLATED' else 2,int(state.ref.vehicles[vid]['cargo_priority']),hazard_eta(state,fusion,router,vid,event,danger or board_risk or estimate['odd_status']!='COMPLIANT'))
         unsafe=danger or estimate['odd_status']=='VIOLATED' or action['motion_action']=='HOLD'
         if unsafe:
             action.pop('route_segment_ids',None)

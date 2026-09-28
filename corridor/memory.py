@@ -7,11 +7,36 @@ class SafetyMemory:
         self.generation=None
         self.roads={}
         self.weather={}
+        self.boards={}
 
     def reset_for(self,state):
         if self.generation!=state.generation:
             self.__init__()
             self.generation=state.generation
+
+    def board_uncertain(self,state,vid,event):
+        from .board import issues
+        from .state import timestamp
+        self.reset_for(state)
+        bad=issues(event)
+        old=self.boards.get(vid)
+        stamp=timestamp(event['event_time'])
+        if bad:
+            self.boards[vid]=dict(clear=0,last_time=stamp,last_id=event.get('event_id'),faults=bad)
+            return True
+        if old is None:
+            return False
+        # Re-reading a packet, duplicates and late good measurements are not recovery.
+        if stamp>old['last_time'] and event.get('event_id')!=old['last_id']:
+            healthy=(event.get('perception_health',0)>=0.9 and event.get('localization_confidence',0)>=0.8
+                     and event.get('communication_latency_ms',2000)<1000 and event.get('packet_loss_pct_10s',50)<20)
+            old['clear']=old['clear']+1 if healthy else 0
+            old['last_time']=stamp
+            old['last_id']=event.get('event_id')
+            if old['clear']>=3:
+                self.boards.pop(vid,None)
+                return False
+        return True
 
     def road(self,state,sid,estimate,signature):
         self.reset_for(state)
