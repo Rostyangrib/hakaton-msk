@@ -1,0 +1,575 @@
+[
+  {
+    "scenario": "TRAIN-001",
+    "packets": 360,
+    "schema_valid_packets": 360,
+    "response_completeness": 1.0,
+    "latency_ms": {
+      "mean": 10.230684369121768,
+      "p95": 11.40454100095667,
+      "max": 13.666832994204015
+    },
+    "timeout_packets": 0,
+    "result_bytes": 82952,
+    "confidence_buckets": {
+      "segment:OPEN:9": [
+        9374,
+        9374
+      ],
+      "source:OK:9": [
+        5450,
+        5450
+      ],
+      "odd:COMPLIANT:9": [
+        7848,
+        7848
+      ]
+    },
+    "evaluated_packets": 109,
+    "segment_state": {
+      "macro_f1": 1.0,
+      "accuracy": 1.0,
+      "per_class_f1": {
+        "OPEN": 1.0
+      },
+      "count": 9374,
+      "confusion": {
+        "OPEN": {
+          "OPEN": 9374
+        }
+      }
+    },
+    "source_status": {
+      "macro_f1": 1.0,
+      "accuracy": 1.0,
+      "per_class_f1": {
+        "OK": 1.0
+      },
+      "count": 5450,
+      "confusion": {
+        "OK": {
+          "OK": 5450
+        }
+      }
+    },
+    "source_fault_types": {
+      "macro_f1": 1.0,
+      "per_label_f1": {},
+      "true_positives": {},
+      "false_positives": {},
+      "false_negatives": {}
+    },
+    "source_detection_delay_score": null,
+    "source_fault_composite": null,
+    "source_detection_delays": [],
+    "odd_status": {
+      "macro_f1": 1.0,
+      "accuracy": 1.0,
+      "per_class_f1": {
+        "COMPLIANT": 1.0
+      },
+      "count": 7848,
+      "confusion": {
+        "COMPLIANT": {
+          "COMPLIANT": 7848
+        }
+      }
+    },
+    "odd_violation_codes": {
+      "macro_f1": 1.0,
+      "per_label_f1": {},
+      "true_positives": {},
+      "false_positives": {},
+      "false_negatives": {}
+    },
+    "confidence_calibration": 0.9992934840516408,
+    "weighted_reference_action_agreement": 1.0,
+    "actions": {
+      "CONTINUE": 7848
+    },
+    "reroutes": 0,
+    "full_route_validity": 1.0,
+    "safe_stop_assignments": 0,
+    "safe_stop_constraint_score": 1.0,
+    "remote_support_overcapacity_steps": 0,
+    "safe_stop_overcapacity_steps": 0,
+    "local_critical_episodes": 0,
+    "action_switches": 0,
+    "locally_unjustified_switches": 0,
+    "local_action_stability": 1.0
+  },
+  {
+    "scenario": "TRAIN-002",
+    "packets": 540,
+    "schema_valid_packets": 540,
+    "response_completeness": 1.0,
+    "latency_ms": {
+      "mean": 10.456376868495243,
+      "p95": 11.874083007569425,
+      "max": 13.524750000215136
+    },
+    "timeout_packets": 0,
+    "result_bytes": 125160,
+    "confidence_buckets": {
+      "segment:OPEN:9": [
+        13849,
+        13849
+      ],
+      "segment:PARTIAL_BLOCK:9": [
+        81,
+        83
+      ],
+      "source:OK:9": [
+        7945,
+        7945
+      ],
+      "source:DEGRADED:8": [
+        143,
+        155
+      ],
+      "odd:COMPLIANT:9": [
+        11622,
+        11622
+      ]
+    },
+    "evaluated_packets": 162,
+    "segment_state": {
+      "macro_f1": 0.9938663379413577,
+      "accuracy": 0.9998564455928797,
+      "per_class_f1": {
+        "OPEN": 0.999927797833935,
+        "PARTIAL_BLOCK": 0.9878048780487805
+      },
+      "count": 13932,
+      "confusion": {
+        "OPEN": {
+          "OPEN": 13849,
+          "PARTIAL_BLOCK": 2
+        },
+        "PARTIAL_BLOCK": {
+          "OPEN": 0,
+          "PARTIAL_BLOCK": 81
+        }
+      }
+    },
+    "source_status": {
+      "macro_f1": 0.9794884607820213,
+      "accuracy": 0.9985185185185185,
+      "per_class_f1": {
+        "DEGRADED": 0.959731543624161,
+        "OK": 0.9992453779398818
+      },
+      "count": 8100,
+      "confusion": {
+        "DEGRADED": {
+          "DEGRADED": 143,
+          "OK": 0
+        },
+        "OK": {
+          "DEGRADED": 12,
+          "OK": 7945
+        }
+      }
+    },
+    "source_fault_types": {
+      "macro_f1": 0.75,
+      "per_label_f1": {
+        "BYZANTINE": 0.0,
+        "DELAY": 1.0,
+        "DRIFT": 1.0,
+        "STALE": 1.0
+      },
+      "true_positives": {
+        "DRIFT": 41,
+        "DELAY": 31,
+        "STALE": 71
+      },
+      "false_positives": {
+        "BYZANTINE": 12
+      },
+      "false_negatives": {}
+    },
+    "source_detection_delay_score": null,
+    "source_fault_composite": null,
+    "source_detection_delays": [
+      {
+        "source_id": "DET-007",
+        "fault_type": "DRIFT",
+        "delay_sec": 1295.0
+      },
+      {
+        "source_id": "CAM-004",
+        "fault_type": "FREEZE",
+        "delay_sec": null
+      },
+      {
+        "source_id": "DT-CORE",
+        "fault_type": "STALE",
+        "delay_sec": 715.0
+      },
+      {
+        "source_id": "DET-013",
+        "fault_type": "DELAY",
+        "delay_sec": 595.0
+      }
+    ],
+    "odd_status": {
+      "macro_f1": 1.0,
+      "accuracy": 1.0,
+      "per_class_f1": {
+        "COMPLIANT": 1.0
+      },
+      "count": 11622,
+      "confusion": {
+        "COMPLIANT": {
+          "COMPLIANT": 11622
+        }
+      }
+    },
+    "odd_violation_codes": {
+      "macro_f1": 1.0,
+      "per_label_f1": {},
+      "true_positives": {},
+      "false_positives": {},
+      "false_negatives": {}
+    },
+    "confidence_calibration": 0.9988948134780977,
+    "weighted_reference_action_agreement": 0.9767805953693495,
+    "actions": {
+      "CONTINUE": 11358,
+      "LIMIT_SPEED": 265,
+      "NO_ACTION": 41
+    },
+    "reroutes": 0,
+    "full_route_validity": 1.0,
+    "safe_stop_assignments": 0,
+    "safe_stop_constraint_score": 1.0,
+    "remote_support_overcapacity_steps": 0,
+    "safe_stop_overcapacity_steps": 0,
+    "local_critical_episodes": 0,
+    "action_switches": 20,
+    "locally_unjustified_switches": 0,
+    "local_action_stability": 1.0
+  },
+  {
+    "scenario": "TRAIN-003",
+    "packets": 540,
+    "schema_valid_packets": 540,
+    "response_completeness": 1.0,
+    "latency_ms": {
+      "mean": 11.654238583502808,
+      "p95": 16.196083000977524,
+      "max": 17.619709004065953
+    },
+    "timeout_packets": 0,
+    "result_bytes": 143456,
+    "confidence_buckets": {
+      "segment:OPEN:9": [
+        13932,
+        13932
+      ],
+      "source:OK:9": [
+        8100,
+        8100
+      ],
+      "odd:COMPLIANT:9": [
+        11641,
+        11641
+      ]
+    },
+    "evaluated_packets": 162,
+    "segment_state": {
+      "macro_f1": 1.0,
+      "accuracy": 1.0,
+      "per_class_f1": {
+        "OPEN": 1.0
+      },
+      "count": 13932,
+      "confusion": {
+        "OPEN": {
+          "OPEN": 13932
+        }
+      }
+    },
+    "source_status": {
+      "macro_f1": 1.0,
+      "accuracy": 1.0,
+      "per_class_f1": {
+        "OK": 1.0
+      },
+      "count": 8100,
+      "confusion": {
+        "OK": {
+          "OK": 8100
+        }
+      }
+    },
+    "source_fault_types": {
+      "macro_f1": 1.0,
+      "per_label_f1": {},
+      "true_positives": {},
+      "false_positives": {},
+      "false_negatives": {}
+    },
+    "source_detection_delay_score": null,
+    "source_fault_composite": null,
+    "source_detection_delays": [
+      {
+        "source_id": "RSU-04",
+        "fault_type": "PACKET_LOSS",
+        "delay_sec": null
+      },
+      {
+        "source_id": "RSU-05",
+        "fault_type": "DELAY",
+        "delay_sec": null
+      },
+      {
+        "source_id": "WX-03",
+        "fault_type": "BIAS",
+        "delay_sec": null
+      }
+    ],
+    "odd_status": {
+      "macro_f1": 1.0,
+      "accuracy": 1.0,
+      "per_class_f1": {
+        "COMPLIANT": 1.0
+      },
+      "count": 11641,
+      "confusion": {
+        "COMPLIANT": {
+          "COMPLIANT": 11641
+        }
+      }
+    },
+    "odd_violation_codes": {
+      "macro_f1": 1.0,
+      "per_label_f1": {},
+      "true_positives": {},
+      "false_positives": {},
+      "false_negatives": {}
+    },
+    "confidence_calibration": 0.9992933881827755,
+    "weighted_reference_action_agreement": 1.0,
+    "actions": {
+      "CONTINUE": 11642,
+      "NO_ACTION": 22
+    },
+    "reroutes": 0,
+    "full_route_validity": 1.0,
+    "safe_stop_assignments": 0,
+    "safe_stop_constraint_score": 1.0,
+    "remote_support_overcapacity_steps": 0,
+    "safe_stop_overcapacity_steps": 0,
+    "local_critical_episodes": 0,
+    "action_switches": 0,
+    "locally_unjustified_switches": 0,
+    "local_action_stability": 1.0
+  },
+  {
+    "scenario": "TRAIN-004",
+    "packets": 720,
+    "schema_valid_packets": 720,
+    "response_completeness": 1.0,
+    "latency_ms": {
+      "mean": 12.395621289942937,
+      "p95": 15.287916990928352,
+      "max": 17.603583008167334
+    },
+    "timeout_packets": 0,
+    "result_bytes": 231287,
+    "confidence_buckets": {
+      "segment:OPEN:9": [
+        18099,
+        18132
+      ],
+      "segment:CONGESTED:5": [
+        237,
+        237
+      ],
+      "segment:CONGESTED:9": [
+        182,
+        182
+      ],
+      "segment:CONGESTED:6": [
+        7,
+        7
+      ],
+      "source:OK:9": [
+        10818,
+        10818
+      ],
+      "source:FAILED:9": [
+        32,
+        32
+      ],
+      "odd:COMPLIANT:9": [
+        9721,
+        9739
+      ],
+      "odd:VIOLATED:9": [
+        5142,
+        5165
+      ],
+      "segment:OPEN:5": [
+        0,
+        29
+      ],
+      "segment:CONGESTED:8": [
+        25,
+        25
+      ],
+      "segment:OPEN:6": [
+        4,
+        16
+      ],
+      "segment:CONGESTED:7": [
+        7,
+        7
+      ],
+      "segment:OPEN:7": [
+        6,
+        14
+      ],
+      "segment:OPEN:8": [
+        13,
+        13
+      ],
+      "odd:UNKNOWN:4": [
+        0,
+        6
+      ]
+    },
+    "evaluated_packets": 217,
+    "segment_state": {
+      "macro_f1": 0.9577891674997852,
+      "accuracy": 0.995606044368235,
+      "per_class_f1": {
+        "CONGESTED": 0.9178356713426854,
+        "OPEN": 0.9977426636568849
+      },
+      "count": 18662,
+      "confusion": {
+        "CONGESTED": {
+          "CONGESTED": 458,
+          "OPEN": 82
+        },
+        "OPEN": {
+          "CONGESTED": 0,
+          "OPEN": 18122
+        }
+      }
+    },
+    "source_status": {
+      "macro_f1": 1.0,
+      "accuracy": 1.0,
+      "per_class_f1": {
+        "FAILED": 1.0,
+        "OK": 1.0
+      },
+      "count": 10850,
+      "confusion": {
+        "FAILED": {
+          "FAILED": 32,
+          "OK": 0
+        },
+        "OK": {
+          "FAILED": 0,
+          "OK": 10818
+        }
+      }
+    },
+    "source_fault_types": {
+      "macro_f1": 1.0,
+      "per_label_f1": {
+        "OUTAGE": 1.0
+      },
+      "true_positives": {
+        "OUTAGE": 32
+      },
+      "false_positives": {},
+      "false_negatives": {}
+    },
+    "source_detection_delay_score": null,
+    "source_fault_composite": null,
+    "source_detection_delays": [
+      {
+        "source_id": "RSU-06",
+        "fault_type": "OUTAGE",
+        "delay_sec": 1720.0
+      },
+      {
+        "source_id": "CAM-006",
+        "fault_type": "OUTAGE",
+        "delay_sec": null
+      },
+      {
+        "source_id": "DT-CORE",
+        "fault_type": "STALE",
+        "delay_sec": null
+      },
+      {
+        "source_id": "DET-009",
+        "fault_type": "BYZANTINE",
+        "delay_sec": null
+      }
+    ],
+    "odd_status": {
+      "macro_f1": 0.9968087194402951,
+      "accuracy": 0.9968477531857813,
+      "per_class_f1": {
+        "COMPLIANT": 0.9975883831905177,
+        "VIOLATED": 0.9960290556900726
+      },
+      "count": 14910,
+      "confusion": {
+        "COMPLIANT": {
+          "COMPLIANT": 9721,
+          "UNKNOWN": 6,
+          "VIOLATED": 23
+        },
+        "VIOLATED": {
+          "COMPLIANT": 18,
+          "UNKNOWN": 0,
+          "VIOLATED": 5142
+        }
+      }
+    },
+    "odd_violation_codes": {
+      "macro_f1": 0.8738368957144864,
+      "per_label_f1": {
+        "MAP_AGE": 0.997229916897507,
+        "RAIN": 0.7504438745314658
+      },
+      "true_positives": {
+        "RAIN": 1902,
+        "MAP_AGE": 3240
+      },
+      "false_positives": {
+        "RAIN": 1265
+      },
+      "false_negatives": {
+        "MAP_AGE": 18
+      }
+    },
+    "confidence_calibration": 0.9955372552876863,
+    "weighted_reference_action_agreement": 0.9301582392660173,
+    "actions": {
+      "CONTINUE": 8761,
+      "SAFE_STOP": 5263,
+      "LIMIT_SPEED": 887,
+      "NO_ACTION": 713
+    },
+    "reroutes": 0,
+    "full_route_validity": 1.0,
+    "safe_stop_assignments": 5263,
+    "safe_stop_constraint_score": 1.0,
+    "remote_support_overcapacity_steps": 0,
+    "safe_stop_overcapacity_steps": 0,
+    "local_critical_episodes": 0,
+    "action_switches": 99,
+    "locally_unjustified_switches": 18,
+    "local_action_stability": 0.9879275653923542
+  }
+]

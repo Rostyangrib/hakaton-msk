@@ -1,0 +1,86 @@
+[
+  {
+    "scenario": "TRAIN-001",
+    "packets": 360,
+    "startup_and_first_packet_sec": 0.4038971250120085,
+    "latency_ms": {
+      "mean": 25.777033900256427,
+      "p95": 27.88874998805113,
+      "max": 33.26720799668692
+    },
+    "sha256_uncompressed": "1f354d26c8a9ada529a7dc432821e0ab36a971f30a8077dfbfa2473cf561a182",
+    "matches_local": true,
+    "network": "none",
+    "exit_code": 0
+  },
+  {
+    "scenario": "TRAIN-002",
+    "packets": 540,
+    "startup_and_first_packet_sec": 0.33301454200409353,
+    "latency_ms": {
+      "mean": 24.936261681121895,
+      "p95": 27.37550000892952,
+      "max": 29.59258298506029
+    },
+    "sha256_uncompressed": "41203e02ac2146b8ec7a602458fd9540efb7e84cef734d6ef1ed30bee45042fd",
+    "matches_local": true,
+    "network": "none",
+    "exit_code": 0
+  },
+  {
+    "scenario": "TRAIN-003",
+    "packets": 540,
+    "startup_and_first_packet_sec": 0.33086408299277537,
+    "latency_ms": {
+      "mean": 27.522019244746023,
+      "p95": 37.04724999261089,
+      "max": 40.941583982203156
+    },
+    "sha256_uncompressed": "a8cd2d702d877aa362c583a748a64537b2a97b7967f58c0ec6ccd50f0b8aa353",
+    "matches_local": true,
+    "network": "none",
+    "exit_code": 0
+  },
+  {
+    "scenario": "TRAIN-004",
+    "packets": 720,
+    "startup_and_first_packet_sec": 0.33459174999734387,
+    "latency_ms": {
+      "mean": 29.432176695945536,
+      "p95": 35.43091702158563,
+      "max": 40.366875007748604
+    },
+    "sha256_uncompressed": "a69247b17382e209b81ed5c2a2945450953ea9df8d7f04ed50bc81d1f4128ba1",
+    "matches_local": true,
+    "network": "none",
+    "exit_code": 0
+  },
+  {
+    "scenario": "PUBLIC-101",
+    "packets": 540,
+    "startup_and_first_packet_sec": 0.3403917499817908,
+    "latency_ms": {
+      "mean": 25.905214231351135,
+      "p95": 28.08187500340864,
+      "max": 106.24529200140387
+    },
+    "sha256_uncompressed": "e851cc5c13f8cf5ec73b7a3f6a4767eadfb3cceeba1a9fe599c034894049e428",
+    "matches_local": true,
+    "network": "none",
+    "exit_code": 0
+  },
+  {
+    "scenario": "PUBLIC-102",
+    "packets": 720,
+    "startup_and_first_packet_sec": 0.3477499159926083,
+    "latency_ms": {
+      "mean": 29.624385517903363,
+      "p95": 34.32454098947346,
+      "max": 183.4765000094194
+    },
+    "sha256_uncompressed": "3054de4aee8411d9be55db5e3872666db1f794ba514cf741380d2e00d739d41c",
+    "matches_local": true,
+    "network": "none",
+    "exit_code": 0
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "scenario": "TRAIN-001",
+    "reroutes_before": 0,
+    "reroutes_after": 1335,
+    "full_route_validity": 1.0,
+    "reference_action_agreement_before": 1.0,
+    "reference_action_agreement_after": 0.9531435349940688,
+    "critical_episodes_after": 0
+  },
+  {
+    "scenario": "TRAIN-002",
+    "reroutes_before": 0,
+    "reroutes_after": 3992,
+    "full_route_validity": 1.0,
+    "reference_action_agreement_before": 0.9930526232450121,
+    "reference_action_agreement_after": 0.8930183152116542,
+    "critical_episodes_after": 0
+  },
+  {
+    "scenario": "TRAIN-003",
+    "reroutes_before": 0,
+    "reroutes_after": 1468,
+    "full_route_validity": 1.0,
+    "reference_action_agreement_before": 0.9297786335551174,
+    "reference_action_agreement_after": 0.8966560940065547,
+    "critical_episodes_after": 0
+  },
+  {
+    "scenario": "TRAIN-004",
+    "reroutes_before": 0,
+    "reroutes_after": 5079,
+    "full_route_validity": 1.0,
+    "reference_action_agreement_before": 0.9468192797650667,
+    "reference_action_agreement_after": 0.8789151373618113,
+    "critical_episodes_after": 0
+  }
+]

@@ -1,0 +1,92 @@
+{
+  "method": "Temporal holdout correctness, 10 confidence bins, Beta prior strength 20",
+  "buckets": {
+    "segment:OPEN:9": [
+      55254,
+      55287
+    ],
+    "source:OK:9": [
+      32313,
+      32313
+    ],
+    "odd:COMPLIANT:9": [
+      40832,
+      40850
+    ],
+    "segment:PARTIAL_BLOCK:9": [
+      81,
+      83
+    ],
+    "source:DEGRADED:8": [
+      143,
+      155
+    ],
+    "segment:CONGESTED:5": [
+      237,
+      237
+    ],
+    "segment:CONGESTED:9": [
+      182,
+      182
+    ],
+    "segment:CONGESTED:6": [
+      7,
+      7
+    ],
+    "source:FAILED:9": [
+      32,
+      32
+    ],
+    "odd:VIOLATED:9": [
+      5142,
+      5165
+    ],
+    "segment:OPEN:5": [
+      0,
+      29
+    ],
+    "segment:CONGESTED:8": [
+      25,
+      25
+    ],
+    "segment:OPEN:6": [
+      4,
+      16
+    ],
+    "segment:CONGESTED:7": [
+      7,
+      7
+    ],
+    "segment:OPEN:7": [
+      6,
+      14
+    ],
+    "segment:OPEN:8": [
+      13,
+      13
+    ],
+    "odd:UNKNOWN:4": [
+      0,
+      6
+    ]
+  },
+  "confidence": {
+    "segment:OPEN:9": 0.995,
+    "source:OK:9": 0.995,
+    "odd:COMPLIANT:9": 0.995,
+    "segment:PARTIAL_BLOCK:9": 0.97087,
+    "source:DEGRADED:8": 0.91429,
+    "segment:CONGESTED:5": 0.96498,
+    "segment:CONGESTED:9": 0.995,
+    "segment:CONGESTED:6": 0.74074,
+    "source:FAILED:9": 0.98077,
+    "odd:VIOLATED:9": 0.995,
+    "segment:OPEN:5": 0.22449,
+    "segment:CONGESTED:8": 0.93333,
+    "segment:OPEN:6": 0.47222,
+    "segment:CONGESTED:7": 0.81481,
+    "segment:OPEN:7": 0.61765,
+    "segment:OPEN:8": 0.90909,
+    "odd:UNKNOWN:4": 0.34615
+  }
+}

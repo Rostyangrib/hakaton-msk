@@ -1,0 +1,34 @@
+test_closed_segment_rule_without_training_class (test_engine.EngineTests.test_closed_segment_rule_without_training_class) ... ok
+test_commands_do_not_move_vehicles (test_engine.EngineTests.test_commands_do_not_move_vehicles) ... ok
+test_complete_snapshot (test_engine.EngineTests.test_complete_snapshot) ... ok
+test_duplicate_events_and_idempotency (test_engine.EngineTests.test_duplicate_events_and_idempotency) ... ok
+test_empty_packet_and_scenario_reset (test_engine.EngineTests.test_empty_packet_and_scenario_reset) ... ok
+test_false_lane_closure_requires_fresh_independent_evidence (test_engine.EngineTests.test_false_lane_closure_requires_fresh_independent_evidence) ... ok
+test_future_events_are_unavailable (test_engine.EngineTests.test_future_events_are_unavailable) ... ok
+test_input_order_and_unknown_fields (test_engine.EngineTests.test_input_order_and_unknown_fields) ... ok
+test_lost_telemetry_at_hub_does_not_imply_inactivity (test_engine.EngineTests.test_lost_telemetry_at_hub_does_not_imply_inactivity) ... ok
+test_predictions_do_not_depend_on_scenario_id_or_absolute_time (test_engine.EngineTests.test_predictions_do_not_depend_on_scenario_id_or_absolute_time) ... ok
+test_prolonged_observation_outage_produces_safe_complete_snapshot (test_engine.EngineTests.test_prolonged_observation_outage_produces_safe_complete_snapshot) ... ok
+test_reroute_action_avoids_a_blocked_future_segment (test_engine.EngineTests.test_reroute_action_avoids_a_blocked_future_segment) ... ok
+test_resources_under_mass_violation (test_engine.EngineTests.test_resources_under_mass_violation) ... ok
+test_routes_are_directed_complete_and_mass_compatible (test_engine.EngineTests.test_routes_are_directed_complete_and_mass_compatible) ... ok
+test_stale_twin_alone_cannot_prove_an_open_road (test_engine.EngineTests.test_stale_twin_alone_cannot_prove_an_open_road) ... ok
+test_time_skew_is_separate_from_delay (test_engine.EngineTests.test_time_skew_is_separate_from_delay) ... ok
+test_unknown_road_reference_keeps_snapshot_valid (test_engine.EngineTests.test_unknown_road_reference_keeps_snapshot_valid) ... ok
+test_actual_position_wins_over_previous_recommendation (test_uncertainty.UncertaintyTests.test_actual_position_wins_over_previous_recommendation) ... ok
+test_all_safe_branches_allow_continue_without_route (test_uncertainty.UncertaintyTests.test_all_safe_branches_allow_continue_without_route) ... ok
+test_closed_nonshortest_branch_requires_explicit_route (test_uncertainty.UncertaintyTests.test_closed_nonshortest_branch_requires_explicit_route) ... ok
+test_current_closure_precedes_remote_support (test_uncertainty.UncertaintyTests.test_current_closure_precedes_remote_support) ... ok
+test_mass_incompatible_branch_requires_valid_alternative (test_uncertainty.UncertaintyTests.test_mass_incompatible_branch_requires_valid_alternative) ... ok
+test_missing_weather_cannot_authorize_a_route (test_uncertainty.UncertaintyTests.test_missing_weather_cannot_authorize_a_route) ... ok
+test_no_safe_route_fails_closed (test_uncertainty.UncertaintyTests.test_no_safe_route_fails_closed) ... ok
+test_old_route_is_not_assumed_executed (test_uncertainty.UncertaintyTests.test_old_route_is_not_assumed_executed) ... ok
+test_old_route_is_revalidated_when_conditions_change (test_uncertainty.UncertaintyTests.test_old_route_is_revalidated_when_conditions_change) ... ok
+test_unknown_branch_is_not_presumed_safe (test_uncertainty.UncertaintyTests.test_unknown_branch_is_not_presumed_safe) ... ok
+test_unknown_current_segment_does_not_crash (test_uncertainty.UncertaintyTests.test_unknown_current_segment_does_not_crash) ... ok
+test_unknown_destination_does_not_crash (test_uncertainty.UncertaintyTests.test_unknown_destination_does_not_crash) ... ok
+
+----------------------------------------------------------------------
+Ran 29 tests in 0.451s
+
+OK

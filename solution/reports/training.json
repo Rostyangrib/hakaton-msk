@@ -1,0 +1,41 @@
+{
+  "source": {
+    "samples": 108000,
+    "validation_samples": 32500,
+    "temporal_holdout_macro_f1": 0.9999628701383088,
+    "validation_classes": [
+      "DELAY",
+      "DRIFT",
+      "OK",
+      "OUTAGE",
+      "STALE"
+    ]
+  },
+  "segment": {
+    "samples": 185760,
+    "validation_samples": 55900,
+    "temporal_holdout_macro_f1": 0.9682937721927156,
+    "validation_classes": [
+      "CONGESTED",
+      "OPEN",
+      "PARTIAL_BLOCK"
+    ]
+  },
+  "visibility": {
+    "samples": 154741,
+    "validation_samples": 46021,
+    "temporal_holdout_macro_f1": 1.0,
+    "validation_classes": [
+      "0"
+    ]
+  },
+  "rain": {
+    "samples": 154741,
+    "validation_samples": 46021,
+    "temporal_holdout_macro_f1": 0.8679495653802052,
+    "validation_classes": [
+      "0",
+      "1"
+    ]
+  }
+}
