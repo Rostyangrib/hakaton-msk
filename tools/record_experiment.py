@@ -8,6 +8,16 @@ from pathlib import Path
 SCENARIOS=['TRAIN-001','TRAIN-002','TRAIN-003','TRAIN-004']
 
 
+def matches_git(content,expected,checkout=None):
+    lf=content.replace(b'\r\n',b'\n')
+    variants={hashlib.sha256(v).hexdigest() for v in (content,lf,lf.replace(b'\n',b'\r\n'))}
+    if expected in variants:return True
+    # A Windows patch can leave mixed LF/CRLF. Prove both the measured actual
+    # bytes and normalized Git content; never accept an arbitrary hash.
+    return (checkout is not None and hashlib.sha256(checkout).hexdigest()==expected
+            and checkout.replace(b'\r\n',b'\n')==lf)
+
+
 def record(repo,data,results,commit,label,description,registry,markdown,safety=None):
     def git(*args):
         return subprocess.check_output(['git','-c','safe.directory='+repo.resolve().as_posix(),*args],cwd=repo)
@@ -20,12 +30,11 @@ def record(repo,data,results,commit,label,description,registry,markdown,safety=N
         assert r['runtime_sha256']==runtime,'Mixed runtime versions'
     for name,expected in runtime.items():
         content=git('show',commit+':'+name)
-        lf=content.replace(b'\r\n',b'\n')
-        variants={hashlib.sha256(v).hexdigest() for v in (content,lf,lf.replace(b'\n',b'\r\n'))}
-        assert expected in variants,'Runtime does not match commit: '+name
+        checkout=(repo/name).read_bytes() if (repo/name).exists() else None
+        assert matches_git(content,expected,checkout),'Runtime does not match commit: '+name
     risks={r['scenario']:r for r in json.loads(safety.read_text(encoding='utf-8'))} if safety else {}
     entry=dict(code_commit=commit,label=label,description=description,runtime_sha256=runtime,
-               git_content_verified='Exact bytes or Windows checkout line-ending translation',
+               git_content_verified='Exact bytes or Windows line endings; mixed endings require actual measured checkout SHA and normalized Git equality',
                scenarios={sid:dict(input_sha256=r['input_sha256'],packets=r['packets'],metrics=r['metrics'],
                                    labels_sha256={f.name:hashlib.sha256(f.read_bytes()).hexdigest() for f in sorted((data/'02_train'/sid/'labels').iterdir()) if f.is_file()},
                                    codes=r['codes'],confidence_mse=r['confidence_mse'],guard_failures=r['guard_failures'],

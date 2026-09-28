@@ -53,7 +53,7 @@ def run(data,sid,out,limit=None,image='corridor-solution:final'):
     assert outputs.get(timeout=5) is None, 'Extra stdout'
     elapsed=[r['elapsed_ms'] for r in logs if 'elapsed_ms' in r]
     assert len(elapsed)==count
-    report=dict(scenario=sid,image=image,packets=count,exit_code=code,first_response_sec=first_response,
+    report=dict(scenario=sid,image=image,packets=count,exit_code=code,first_response_sec=first_response,total_wall_sec=time.perf_counter()-start,
                 roundtrip_ms=quantiles(times),processing_ms=quantiles(elapsed),
                 processing_over_2000_ms=sum(t>2000 for t in elapsed),roundtrip_over_2000_ms=sum(t>2000 for t in times),
                 complete_schema_valid=count,network='none',cpu_limit=8,memory_limit='16g',gpu=False,read_only=True)
