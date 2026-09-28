@@ -27,6 +27,8 @@ class State:
         self.watermark = -60
         self.diagnostics = []
         self.inactivity = defaultdict(int)
+        from .support import SupportScheduler
+        self.support_scheduler = SupportScheduler()
         self._event_cache = {}
         self._ordered_current = None
 
@@ -115,4 +117,6 @@ class State:
         return 0 <= self.now - timestamp(event['event_time']) <= seconds
 
     def remember(self, decision):
+        self.support_scheduler.commit(
+            {a['vehicle_id'] for a in decision.get('vehicle_actions', []) if a['remote_support_required']}, self.now)
         self.recommendations.append((self.now, decision))

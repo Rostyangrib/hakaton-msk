@@ -49,3 +49,13 @@ class StateTests(unittest.TestCase):
         self.state.ingest(packet())
         self.assertFalse(self.state.current)
         self.assertFalse(self.state.recommendations)
+
+    def test_support_history_commits_final_snapshot_and_resets_between_scenarios(self):
+        from corridor.support import SupportRequest
+        self.state.ingest(packet())
+        scheduler=self.state.support_scheduler
+        scheduler.select({'AV-001':SupportRequest(1,1,0)},1,self.state.now)
+        self.state.remember({'vehicle_actions':[{'vehicle_id':'AV-001','remote_support_required':True}]})
+        self.assertTrue(scheduler.tickets['AV-001']['selected'])
+        self.state.reset('other')
+        self.assertFalse(self.state.support_scheduler.tickets)

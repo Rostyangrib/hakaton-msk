@@ -1,7 +1,6 @@
 from collections import Counter
 from .basic import telemetry
 from .contract import skeleton
-from .resources import support_selection
 from .odd import check
 from .limits import current_fragment_allowed,segment_speed_limit
 
@@ -77,15 +76,9 @@ def hold(action):
     action.update(vehicle_id=vid,motion_action='HOLD',remote_support_required=False,confidence=0.35,rationale_codes=['LOW_CONFIDENCE'])
 
 
-def diagnostic_support(state,decision):
-    estimates={r['vehicle_id']:r for r in decision['vehicle_assessments']}
-    requests={a['vehicle_id']:(1 if estimates[a['vehicle_id']]['odd_status']=='VIOLATED' else 2,int(state.ref.vehicles[a['vehicle_id']]['cargo_priority']))
-              for a in decision['vehicle_actions'] if a['motion_action']=='HOLD'}
-    selected=support_selection(requests,min(6,state.ref.support['max_parallel_sessions']))
-    for a in decision['vehicle_actions']:
-        a['remote_support_required']=a['vehicle_id'] in selected
-        if a['vehicle_id'] in requests and a['vehicle_id'] not in selected:
-            a['rationale_codes']=sorted(set(a['rationale_codes']+['REMOTE_SUPPORT_CAPACITY']))
+def diagnostic_support(state,decision,fusion=None,router=None):
+    from .resources import allocate_support
+    allocate_support(state,fusion,router,decision)
 
 
 def finalize(state,fusion,router,contract,packet,decision):
@@ -95,7 +88,7 @@ def finalize(state,fusion,router,contract,packet,decision):
     except Exception as exc:
         state.diagnostics.append('contract_recovery:'+type(exc).__name__+':'+str(exc).splitlines()[0])
         decision=skeleton(packet,state.ref)
-        diagnostic_support(state,decision)
+        diagnostic_support(state,decision,fusion,router)
         contract.validate(decision)
         return decision
     issues=errors(state,fusion,decision)
@@ -111,7 +104,7 @@ def finalize(state,fusion,router,contract,packet,decision):
             unresolved={a['vehicle_id']:['recovery_exception'] for a in decision['vehicle_actions']}
         for a in decision['vehicle_actions']:
             if a['vehicle_id'] in unresolved: hold(a)
-        if unresolved: diagnostic_support(state,decision)
+        if unresolved: diagnostic_support(state,decision,fusion,router)
     contract.validate(decision)
     if errors(state,fusion,decision): raise ValueError('Final guard could not produce valid snapshot')
     return decision

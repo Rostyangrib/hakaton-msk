@@ -4,6 +4,7 @@ from .basic import telemetry
 from .routing import dijkstra
 from .limits import segment_speed_limit, current_fragment_allowed
 from .odd import check
+from .support import SupportRequest
 
 
 def min_cost_assignment(candidates, capacities):
@@ -70,7 +71,7 @@ def speed_limit(state,fusion,vid,event,route=None):
 def hazard_eta(state,fusion,router,vid,event,current_danger=False):
     if current_danger: return 0.0
     if not event or not state.fresh(event,15): return 0.0
-    path=router.paths.get(vid,{}).get('static')
+    path=router.paths.get(vid,{}).get('static') if router else None
     if not path: return math.inf
     first=path[0]
     risk=fusion.roads[first]['state'] in ('CLOSED','UNKNOWN') or check(state,fusion,vid,event,first,True)['odd_status']!='COMPLIANT'
@@ -80,25 +81,64 @@ def hazard_eta(state,fusion,router,vid,event,current_danger=False):
     return remaining/(speed/3.6)
 
 
+def allocate_support(state, fusion, router, decision):
+    """Same scheduler for normal planning and diagnostic recovery."""
+    from .board import uncertain as board_uncertain, issues as board_issues
+    assessments={r['vehicle_id']:r for r in decision['vehicle_assessments']}
+    requests={}
+    for action in decision['vehicle_actions']:
+        vid=action['vehicle_id']
+        event=telemetry(state,vid)
+        fresh=bool(event and state.fresh(event,15))
+        board_risk=bool(fresh and (board_uncertain(state,fusion,vid,event) if fusion else board_issues(event)))
+        danger=False
+        if fresh and fusion:
+            danger=fusion.roads.get(event['segment_id'],{}).get('state')=='CLOSED'
+            weather=fusion.weather(state.ref.position(event['segment_id'],event['offset_m']))
+            danger=danger or bool(weather and weather['road_surface']=='FLOODED')
+        status=assessments[vid]['odd_status']
+        # A stop recommendation alone never proves that the vehicle arrived.
+        confirmed_waiting=bool(fresh and waiting_zone(state,vid,event) and event.get('speed_kmh',math.inf)<=1)
+        if (action['motion_action']=='NO_ACTION' and fresh and confirmed_waiting
+                and state.inactivity[vid]>=3 and status!='VIOLATED' and not danger and not board_risk
+                and event.get('autonomy_state')!='REMOTE_REQUESTED'):
+            continue
+        exposed=action['motion_action']=='HOLD' and not confirmed_waiting
+        requires=(danger or board_risk or status!='COMPLIANT' or action['motion_action']=='HOLD'
+                  or not fresh or bool(event and event.get('autonomy_state')=='REMOTE_REQUESTED'))
+        if action['motion_action']=='NO_ACTION' and not requires:
+            continue
+        if requires:
+            risk=0 if danger or board_risk else 1 if exposed else 2 if status=='VIOLATED' else 3
+            eta=hazard_eta(state,fusion,router,vid,event,danger or board_risk or status!='COMPLIANT') if fusion else 0.0
+            requests[vid]=SupportRequest(risk,int(state.ref.vehicles[vid]['cargo_priority']),eta,exposed)
+    selected=state.support_scheduler.select(requests,min(6,state.ref.support['max_parallel_sessions']),state.now)
+    for action in decision['vehicle_actions']:
+        vid=action['vehicle_id']
+        action['remote_support_required']=vid in selected
+        codes=set(action['rationale_codes'])-{'REMOTE_SUPPORT_CAPACITY'}
+        if vid in requests and vid not in selected: codes.add('REMOTE_SUPPORT_CAPACITY')
+        action['rationale_codes']=sorted(codes)
+    state.diagnostics.append(dict(support_allocation=dict(
+        requested=len(requests),selected=sorted(selected),
+        exposed_holds=sorted(v for v,r in requests.items() if r.exposed_hold),
+        waiting_seconds={v:state.support_scheduler.waiting_seconds(v,state.now) for v in sorted(requests) if v not in selected})))
+
+
 def apply(state,fusion,router,decision):
     assessments={r['vehicle_id']:r for r in decision['vehicle_assessments']}
-    candidates,requests={},{}
+    candidates={}
     actions={r['vehicle_id']:r for r in decision['vehicle_actions']}
     for vid,action in actions.items():
         if action['motion_action']=='NO_ACTION': continue
         event=telemetry(state,vid)
         estimate=assessments[vid]
         danger=False
-        from .board import uncertain as board_uncertain
-        board_risk=bool(event and state.fresh(event,15) and board_uncertain(state,fusion,vid,event))
         if event and state.fresh(event,15):
             road=fusion.roads[event['segment_id']]
             danger=road['state']=='CLOSED'
             weather=fusion.weather(state.ref.position(event['segment_id'],event['offset_m']))
             danger=danger or bool(weather and weather['road_surface']=='FLOODED')
-        requires = danger or estimate['odd_status']!='COMPLIANT' or action['motion_action']=='HOLD' or bool(event and event.get('autonomy_state')=='REMOTE_REQUESTED')
-        if requires:
-            requests[vid]=(0 if danger or board_risk else 1 if estimate['odd_status']=='VIOLATED' else 2,int(state.ref.vehicles[vid]['cargo_priority']),hazard_eta(state,fusion,router,vid,event,danger or board_risk or estimate['odd_status']!='COMPLIANT'))
         unsafe=danger or estimate['odd_status']=='VIOLATED' or action['motion_action']=='HOLD'
         if unsafe:
             action.pop('route_segment_ids',None)
@@ -126,7 +166,6 @@ def apply(state,fusion,router,decision):
             limit=speed_limit(state,fusion,vid,event,router.paths.get(vid,{}).get('dynamic'))
             if limit is None:
                 action.update(motion_action='HOLD',rationale_codes=['LOW_CONFIDENCE'])
-                requests[vid]=(0,int(state.ref.vehicles[vid]['cargo_priority']))
             elif action['motion_action']=='CONTINUE' and limit < min(float(state.ref.segments[event['segment_id']]['speed_limit_kmh']),float(state.ref.vehicles[vid]['nominal_max_speed_kmh'])):
                 action.update(motion_action='LIMIT_SPEED',speed_limit_kmh=limit)
         if event:
@@ -143,11 +182,4 @@ def apply(state,fusion,router,decision):
         if vid not in assignments:
             state.diagnostics.append('impossible_safe_solution:'+vid)
             if options: actions[vid]['rationale_codes'].append('SAFE_STOP_CAPACITY')
-    previous=[]
-    if state.recommendations:
-        previous=[r['vehicle_id'] for r in state.recommendations[-1][1]['vehicle_actions'] if r['remote_support_required']]
-    selected=support_selection(requests,min(6,state.ref.support['max_parallel_sessions']),previous)
-    for vid,action in actions.items():
-        action['remote_support_required']=vid in selected
-        if vid in requests and vid not in selected: action['rationale_codes'].append('REMOTE_SUPPORT_CAPACITY')
-        action['rationale_codes']=sorted(set(action['rationale_codes']))
+    allocate_support(state,fusion,router,decision)
