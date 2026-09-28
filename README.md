@@ -3,6 +3,8 @@
 
 Python 3.13, без ML. Вход NDJSON через stdin, полный ответ на пакет через stdout, структурированные логи через stderr. Источники наблюдений и справочники задаются явно; labels не используются runtime.
 
+Текущая поставка Team3: [контроль TRAIN, бортовых отказов и Docker PUBLIC](docs/RELEASE_TEAM3.md), [коммиты и метрики](EXPERIMENT_LOG.md). Исполняемый код 6c5829f; правило CONTINUE/REROUTE сохранено. Архив сдачи и исходные данные находятся вне Git.
+
 ```powershell
 python -m pip install -r requirements.txt
 python -m corridor --reference <путь-к-01_reference>

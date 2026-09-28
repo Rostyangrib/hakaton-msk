@@ -46,11 +46,17 @@ def build(repo,root,old,new,out,commit):
     lines+=['',f"Прежняя SYN: {len(syn)} случаев/{sum(r['packets'] for r in syn)} ответов, нарушенных проверяемых свойств: {sum(bool(r['failures']) for r in syn)}. Ненулевые индикаторы сохранены: "+json.dumps({r['scenario']:r['risk_indicators'] for r in syn if r['risk_indicators']},ensure_ascii=False)+'.','',
             'BOARD-008: скрытая видимость уже задана плохой, а первые показания здоровья 0.95/0.9167 ещё выше порога; два движущих ответа не скрыты. Проверяемые свойства наблюдаемого отказа не являются полной истиной или гарантией PRIVATE. Числовая полезность действий и точная реализация скрытого оценщика недоступны.','',
             '## Контейнерный PUBLIC','',
-            '| PUBLIC | Валидных ответов | Первый ответ, с | Roundtrip максимум, с | Ответов >2 с | Изменений motion относительно Team2 |','|---|---:|---:|---:|---:|---:|']
+            '| PUBLIC | Валидных ответов | Первый ответ, с | Roundtrip максимум, с: прогон / повтор | Ответов >2 с | Изменений motion относительно Team2 |','|---|---:|---:|---:|---:|---:|']
     for entry in public:
         sid=entry['scenario'];r=read(root/'submission'/(sid+'-container.json'))
-        lines.append(f"| {sid} | {r['complete_schema_valid']} | {r['first_response_sec']:.3f} | {r['roundtrip_ms']['max']/1000:.3f} | {r['roundtrip_over_2000_ms']} | {entry['counts'].get('motion_action_changed',0)} |")
-    lines+=['','linux/amd64, 8 CPU, 16 ГБ, сеть отключена, GPU не предоставлен, read-only, EOF код 0. Повтор обоих PUBLIC сравнивается побайтово с первым прогоном. Результаты PUBLIC не имеют эталонов: изменение команды не доказывает улучшение.','',
+        repeated=read(root/'public-repeat'/(sid+'-container.json'))
+        assert (root/'submission'/(sid+'.ndjson.gz')).read_bytes()==(root/'public-repeat'/(sid+'.ndjson.gz')).read_bytes()
+        for control in (r,repeated):
+            assert control['complete_schema_valid']==(540 if sid=='PUBLIC-101' else 720)
+            assert control['exit_code']==control['processing_over_2000_ms']==control['roundtrip_over_2000_ms']==0
+            assert control['first_response_sec']<60
+        lines.append(f"| {sid} | {r['complete_schema_valid']} | {r['first_response_sec']:.3f} | {r['roundtrip_ms']['max']/1000:.3f} / {repeated['roundtrip_ms']['max']/1000:.3f} | {r['roundtrip_over_2000_ms']+repeated['roundtrip_over_2000_ms']} | {entry['counts'].get('motion_action_changed',0)} |")
+    lines+=['','linux/amd64, 8 CPU, 16 ГБ, сеть отключена, GPU не предоставлен, read-only, EOF код 0. Повтор обоих PUBLIC побайтово совпал с первым прогоном (NDJSON.GZ с mtime=0). Также все JSON-решения обоих PUBLIC совпали с Team2. Результаты PUBLIC не имеют эталонов: изменение команды не доказывает улучшение.','',
             '## Итоговая поставка','',
             'Кариков Team3.zip: solution-image.tar (docker save тега corridor-solution:final), source.zip с совпадающими runtime SHA, PUBLIC-101.result.ndjson.gz, PUBLIC-102.result.ndjson.gz и прежняя пользовательская presentation.pdf (не более семи страниц). Архив Team2 сохранён. Презентация не редактировалась; её старые показатели следует сверить с этим отчётом перед защитой.','',
             'Существует независимый протокольный контроль известных ограничений, но физическая безопасность при скрытой ошибке всех применимых источников не доказана. Диагностический HOLD вне зоны ожидания и ненаблюдаемое начало опасности остаются ограничениями.','',
